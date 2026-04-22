@@ -185,3 +185,60 @@ NC custom_apps host path: `/volume2/@docker/volumes/nextcloud_aio_nextcloud/_dat
 - **Phase 4:** Mileage + Medical expenses + Business expenses
 - **Phase 5:** Reports (PDF/CSV/TXF) + Settings + update mechanism
 - **Phase 6:** UI polish, validation, production deployment
+- **Phase 7:** Mandalorian theme
+
+## Phase 7 — Mandalorian Theme
+
+A Star Wars / Mandalorian visual theme for the app. Private self-hosted use only;
+user has accepted responsibility for any Disney/Lucasfilm IP. Prefer fan-made or
+AI-generated assets; use official Disney assets as fallback if quality warrants.
+
+### Color Palette — Beskar
+| Variable | Value | Use |
+|---|---|---|
+| `--dl-color-bg` | `#0d0f12` | App background (deep space black) |
+| `--dl-color-surface` | `#1a1d23` | Card/panel surface |
+| `--dl-color-border` | `#2e333d` | Borders, dividers |
+| `--dl-color-beskar` | `#8a9bb0` | Primary beskar silver |
+| `--dl-color-gold` | `#c9a84c` | Accent gold (Mandalorian signet, highlights) |
+| `--dl-color-amber` | `#e07b2a` | Warnings, mileage category |
+| `--dl-color-text` | `#d4d8de` | Primary text |
+| `--dl-color-text-muted` | `#6b7280` | Secondary/muted text |
+
+### Typography
+- Headings: *Star Jedi* font (free, fan-made, widely used) — `h1`/`h2`/section titles only
+- Body: system font stack — readability over theme on form fields and data
+
+### App Icon
+- `appinfo/img/app.svg` — Mandalorian helmet (Mando's beskar helmet, front-facing)
+- Source: fan SVG or AI-generated; fallback to traced/simplified Disney asset
+
+### Navigation Section Names (themed)
+| Functional Name | Themed Name | Icon |
+|---|---|---|
+| Dashboard | The Covert | Home/Mandalorian signet |
+| Cash Donations | The Coffer | Currency |
+| Item Donations | The Offering | Gift/crate |
+| Mileage | The Hunt | Speeder/ship |
+| Medical | Medpac Ledger | Medpac/heart |
+| Business Expenses | The Armory | Blaster/briefcase |
+| Reports | Holorecords | Hologram/file |
+| Settings | Beskar Forge | Gear/anvil |
+
+Themed names are the default; a "Disable Star Wars theme" toggle in Settings
+reverts to functional names and the standard NC color scheme.
+
+### Background & Texture Assets
+- Dashboard background: Mandalorian landscape or space scene (AI-generated or official still)
+- Card texture: subtle beskar metal texture or carbon fiber pattern
+- Loading spinner: Mandalorian signet (the mudhorn skull + star)
+- Empty state illustrations: IG-11, Grogu, or ship silhouettes
+
+### "This is the Way" Micro-copy
+- Save confirmation: *"This is the Way."*
+- Delete confirmation dialog: *"I can bring you in warm, or I can bring you in cold."*
+- Empty dashboard (no entries yet): *"You have a long way to go."*
+- Successful report export: *"I have spoken."*
+- Settings saved: *"Foundlings are the future."*
+- Update check — no updates: *"The asset is secure."*
+- Update check — updates available: *"New intel from the Guild."*
