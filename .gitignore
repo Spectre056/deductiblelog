@@ -1,0 +1,7 @@
+node_modules/
+js/
+css/
+vendor/
+*.log
+.DS_Store
+dist/

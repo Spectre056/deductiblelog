@@ -1,0 +1,19 @@
+{
+  "name": "spectre056/deductiblelog",
+  "description": "Nextcloud app for tracking household tax deductions",
+  "type": "project",
+  "license": "AGPL-3.0-or-later",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "OCA\\DeductibleLog\\": "lib/"
+    }
+  },
+  "config": {
+    "platform": {
+      "php": "8.2"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>deductiblelog</id>
+    <name>DeductibleLog</name>
+    <summary>Track tax deductions for your household</summary>
+    <description><![CDATA[
+Track charitable donations (cash and non-cash items), deductible mileage,
+medical expenses, and business expenses — all in one place. Generates
+accountant-ready reports and CSV/TXF exports. Inspired by Intuit's
+discontinued ItsDeductible.
+    ]]></description>
+    <version>0.1.0</version>
+    <licence>agpl</licence>
+    <author mail="eckardmo@gmail.com">Spectre056</author>
+    <namespace>DeductibleLog</namespace>
+    <category>organization</category>
+    <bugs>https://github.com/Spectre056/deductiblelog/issues</bugs>
+    <repository>https://github.com/Spectre056/deductiblelog</repository>
+    <dependencies>
+        <php min-version="8.2" max-version="8.5"/>
+        <nextcloud min-version="33" max-version="34"/>
+    </dependencies>
+    <navigations>
+        <navigation>
+            <name>DeductibleLog</name>
+            <route>deductiblelog.page.index</route>
+            <icon>app.svg</icon>
+            <order>50</order>
+        </navigation>
+    </navigations>
+</info>
