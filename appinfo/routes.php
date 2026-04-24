@@ -36,10 +36,11 @@ return [
         ['name' => 'item_category#search', 'url' => '/api/item-categories/search','verb' => 'GET'],
 
         // Mileage logs
-        ['name' => 'mileage#index',   'url' => '/api/mileage',      'verb' => 'GET'],
-        ['name' => 'mileage#create',  'url' => '/api/mileage',      'verb' => 'POST'],
-        ['name' => 'mileage#update',  'url' => '/api/mileage/{id}', 'verb' => 'PUT'],
-        ['name' => 'mileage#destroy', 'url' => '/api/mileage/{id}', 'verb' => 'DELETE'],
+        ['name' => 'mileage#index',   'url' => '/api/mileage',        'verb' => 'GET'],
+        ['name' => 'mileage#rates',   'url' => '/api/mileage/rates',  'verb' => 'GET'],
+        ['name' => 'mileage#create',  'url' => '/api/mileage',        'verb' => 'POST'],
+        ['name' => 'mileage#update',  'url' => '/api/mileage/{id}',   'verb' => 'PUT'],
+        ['name' => 'mileage#destroy', 'url' => '/api/mileage/{id}',   'verb' => 'DELETE'],
 
         // Medical expenses
         ['name' => 'medical_expense#index',   'url' => '/api/medical-expenses',      'verb' => 'GET'],
