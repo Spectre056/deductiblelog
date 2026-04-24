@@ -179,8 +179,19 @@ NC custom_apps host path: `/volume2/@docker/volumes/nextcloud_aio_nextcloud/_dat
 - App.vue has navigation sidebar with all 8 sections stubbed
 - CLAUDE.md created
 
+### Session 2 (2026-04-23) — Phase 2
+- DB migrations: schema (Version000100Date20260423000000) creates all 12 tables
+- DB migrations: seed (Version000100Date20260423000001) inserts ~295 Salvation Army FMV items + 3 tax-rate rows (2024/2025/2026)
+- Db layer: Charity, CharityMapper, FamilyMember, FamilyMemberMapper
+- Service layer: CharityService, FamilyMemberService
+- Controllers: CharityController, FamilyMemberController
+- Vue: router (hash-based), Pinia stores for charities + familyMembers, full CRUD views for Charities and FamilyMembers, stubs for all other views
+- App.vue updated with RouterView + NcAppNavigationSpacer separating primary nav from admin items
+- main.js wired with Pinia + Router
+- deploy.sh created (npm build → rsync → occ upgrade on spectre-nas)
+
 ### Remaining Phases
-- **Phase 2:** DB migrations + Salvation Army seed + Charity CRUD + Family member CRUD + deploy.sh
+- **Phase 3:** Cash donations + Item donations with FMV lookup + receipt attachments
 - **Phase 3:** Cash donations + Item donations with FMV lookup + receipt attachments
 - **Phase 4:** Mileage + Medical expenses + Business expenses
 - **Phase 5:** Reports (PDF/CSV/TXF) + Settings + update mechanism
