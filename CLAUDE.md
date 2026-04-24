@@ -190,8 +190,16 @@ NC custom_apps host path: `/volume2/@docker/volumes/nextcloud_aio_nextcloud/_dat
 - main.js wired with Pinia + Router
 - deploy.sh created (npm build → rsync → occ upgrade on spectre-nas)
 
+### Session 3 (2026-04-23) — Phase 3a: Cash Donations
+- Phase 3 split: 3a = cash donations; 3b = item donations + FMV lookup + receipts
+- CashDonation Entity + CashDonationMapper (findAllByYear, findById, sumByYear)
+- CashDonationService + CashDonationController (index accepts tax_year query param, returns total)
+- cashDonations Pinia store (fetchYear, create, update, remove, computed totalFormatted)
+- CashDonations.vue: year filter selector, donation table with totals row, add/edit dialog (charity NcSelect, date input with auto tax_year sync, amount, payment method, notes), delete confirm
+
 ### Remaining Phases
-- **Phase 3:** Cash donations + Item donations with FMV lookup + receipt attachments
+- **Phase 3b NEXT:** Item donations (line items + FMV lookup) + receipt attachments
+- **Phase 4:** Mileage + Medical + Business expenses
 - **Phase 3:** Cash donations + Item donations with FMV lookup + receipt attachments
 - **Phase 4:** Mileage + Medical expenses + Business expenses
 - **Phase 5:** Reports (PDF/CSV/TXF) + Settings + update mechanism
