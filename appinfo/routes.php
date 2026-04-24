@@ -54,6 +54,7 @@ return [
         ['name' => 'business_expense#destroy', 'url' => '/api/business-expenses/{id}', 'verb' => 'DELETE'],
 
         // Receipts
+        ['name' => 'receipt#index',   'url' => '/api/receipts',      'verb' => 'GET'],
         ['name' => 'receipt#upload',  'url' => '/api/receipts',      'verb' => 'POST'],
         ['name' => 'receipt#show',    'url' => '/api/receipts/{id}', 'verb' => 'GET'],
         ['name' => 'receipt#destroy', 'url' => '/api/receipts/{id}', 'verb' => 'DELETE'],
