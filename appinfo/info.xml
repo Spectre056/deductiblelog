@@ -12,7 +12,7 @@ discontinued ItsDeductible.
     ]]></description>
     <version>0.1.0</version>
     <licence>agpl</licence>
-    <author mail="eckardmo@gmail.com">Spectre056</author>
+    <author>Spectre056</author>
     <namespace>DeductibleLog</namespace>
     <category>organization</category>
     <bugs>https://github.com/Spectre056/deductiblelog/issues</bugs>
