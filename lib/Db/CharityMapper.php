@@ -25,6 +25,17 @@ class CharityMapper extends QBMapper {
         return $this->findEntities($qb);
     }
 
+    /** @return Charity[] */
+    public function search(string $userId, string $term): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+           ->from($this->getTableName())
+           ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+           ->andWhere($qb->expr()->iLike('name', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($term) . '%')))
+           ->orderBy('name', 'ASC');
+        return $this->findEntities($qb);
+    }
+
     public function findById(int $id, string $userId): Charity {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')

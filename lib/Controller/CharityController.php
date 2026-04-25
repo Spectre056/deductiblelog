@@ -27,7 +27,8 @@ class CharityController extends Controller {
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function index(): JSONResponse {
-        $charities = $this->service->findAll($this->userId);
+        $search    = $this->request->getParam('search');
+        $charities = $this->service->findAll($this->userId, $search);
         return new JSONResponse([
             'status' => 'ok',
             'data'   => array_map(fn($c) => $c->jsonSerialize(), $charities),

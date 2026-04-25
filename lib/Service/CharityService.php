@@ -13,7 +13,10 @@ class CharityService {
     public function __construct(private CharityMapper $mapper) {}
 
     /** @return Charity[] */
-    public function findAll(string $userId): array {
+    public function findAll(string $userId, ?string $search = null): array {
+        if ($search !== null && $search !== '') {
+            return $this->mapper->search($userId, $search);
+        }
         return $this->mapper->findAll($userId);
     }
 
