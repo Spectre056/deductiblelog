@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
-NAS_HOST="spectre-nas"
-NAS_USER="eckardmo"
+# Set these to match your environment before running.
+NAS_HOST="your-nas-hostname"
+NAS_USER="your-nas-username"
 NC_CONTAINER="nextcloud-aio-nextcloud"
 NC_CUSTOM_APPS="/var/www/html/custom_apps"
 APP_ID="deductiblelog"
@@ -34,7 +35,7 @@ tar -czf - \
   | ssh "${NAS_USER}@${NAS_HOST}" "tar -xzf - -C '${STAGE_DIR}'"
 
 # ── docker cp into container ──────────────────────────────────────────────────
-# eckardmo is in the docker group — no sudo required.
+# Requires NAS_USER to be in the docker group (no sudo needed).
 echo "==> Copying into container ${NC_CONTAINER}…"
 ssh "${NAS_USER}@${NAS_HOST}" \
   "docker cp '${STAGE_DIR}/.' '${NC_CONTAINER}:${NC_CUSTOM_APPS}/${APP_ID}/'"
