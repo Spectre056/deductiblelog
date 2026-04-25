@@ -62,9 +62,10 @@ return [
 
         // Reports & exports
         ['name' => 'report#summary', 'url' => '/api/reports/summary', 'verb' => 'GET'],
-        ['name' => 'report#pdf',     'url' => '/api/reports/pdf',     'verb' => 'GET'],
+        ['name' => 'report#html',    'url' => '/api/reports/html',    'verb' => 'GET'],
         ['name' => 'report#csv',     'url' => '/api/reports/csv',     'verb' => 'GET'],
         ['name' => 'report#txf',     'url' => '/api/reports/txf',     'verb' => 'GET'],
+        ['name' => 'report#pdf',     'url' => '/api/reports/pdf',     'verb' => 'GET'],
 
         // Settings & tax rate updates
         ['name' => 'settings#index',         'url' => '/api/settings',              'verb' => 'GET'],

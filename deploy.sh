@@ -4,8 +4,10 @@ set -euo pipefail
 # ── Config ────────────────────────────────────────────────────────────────────
 NAS_HOST="spectre-nas"
 NAS_USER="eckardmo"
-NC_CUSTOM_APPS="/volume2/@docker/volumes/nextcloud_aio_nextcloud/_data/custom_apps"
+NC_CONTAINER="nextcloud-aio-nextcloud"
+NC_CUSTOM_APPS="/var/www/html/custom_apps"
 APP_ID="deductiblelog"
+STAGE_DIR="/tmp/dl-deploy"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Build ──────────────────────────────────────────────────────────────────────
@@ -13,9 +15,11 @@ echo "==> Building frontend…"
 cd "$SCRIPT_DIR"
 npm run build
 
-# ── Sync ──────────────────────────────────────────────────────────────────────
-echo "==> Rsyncing to ${NAS_HOST}:${NC_CUSTOM_APPS}/${APP_ID}/"
-rsync -az --delete \
+# ── Transfer via tar | ssh ────────────────────────────────────────────────────
+# UGOS Pro intercepts rsync connections via its own daemon; use tar pipe instead.
+echo "==> Transferring to ${NAS_HOST}:${STAGE_DIR}/ …"
+ssh "${NAS_USER}@${NAS_HOST}" "rm -rf '${STAGE_DIR}' && mkdir -p '${STAGE_DIR}'"
+tar -czf - \
   --exclude='.git' \
   --exclude='node_modules' \
   --exclude='.gitignore' \
@@ -24,14 +28,24 @@ rsync -az --delete \
   --exclude='package*.json' \
   --exclude='vite.config.js' \
   --exclude='composer.json' \
-  --exclude='src/' \
-  --rsh="ssh -l ${NAS_USER}" \
-  "$SCRIPT_DIR/" \
-  "${NAS_HOST}:${NC_CUSTOM_APPS}/${APP_ID}/"
+  --exclude='src' \
+  -C "${SCRIPT_DIR}" \
+  . \
+  | ssh "${NAS_USER}@${NAS_HOST}" "tar -xzf - -C '${STAGE_DIR}'"
 
-# ── occ upgrade ───────────────────────────────────────────────────────────────
-echo "==> Running occ upgrade on ${NAS_HOST}…"
+# ── docker cp into container ──────────────────────────────────────────────────
+# eckardmo is in the docker group — no sudo required.
+echo "==> Copying into container ${NC_CONTAINER}…"
 ssh "${NAS_USER}@${NAS_HOST}" \
-  "sudo docker exec -u www-data nextcloud-aio-nextcloud php occ upgrade --no-interaction"
+  "docker cp '${STAGE_DIR}/.' '${NC_CONTAINER}:${NC_CUSTOM_APPS}/${APP_ID}/'"
+
+# ── Enable app (idempotent; runs migrations on first install) ─────────────────
+echo "==> Enabling app (runs DB migrations if needed)…"
+ssh "${NAS_USER}@${NAS_HOST}" \
+  "docker exec -u www-data '${NC_CONTAINER}' php occ app:enable ${APP_ID}"
+
+# ── Cleanup ───────────────────────────────────────────────────────────────────
+echo "==> Cleaning up…"
+ssh "${NAS_USER}@${NAS_HOST}" "rm -rf '${STAGE_DIR}'"
 
 echo "==> Done. App deployed to ${NAS_HOST}."

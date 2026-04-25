@@ -40,7 +40,7 @@ All expense/medical records reference a `family_member_id`.
 | Routing | vue-router v4 | Hash-based, single SPA |
 | HTTP | @nextcloud/axios | Wraps axios with NC auth headers |
 | Icons | vue-material-design-icons | MDI icon set |
-| PDF export | (Phase 5 — library TBD, likely TCPDF via NC or Dompdf) |
+| Reports | HTML (print-to-PDF) + CSV + TXF (charitable, TurboTax Desktop) |
 | DB | Nextcloud IQueryBuilder | Supports SQLite/MySQL/PostgreSQL |
 
 ## Directory Structure
@@ -49,7 +49,6 @@ All expense/medical records reference a `family_member_id`.
 deductiblelog/
 ├── appinfo/
 │   ├── info.xml          — NC app metadata, version, dependencies
-│   ├── app.php           — app bootstrap (loads Application class)
 │   └── routes.php        — all REST API + page routes
 ├── lib/
 │   ├── AppInfo/
@@ -143,6 +142,13 @@ Keys: `default_tax_year`, `household_name`, `last_update_check`
 Update mechanism: fetches `rates.json` from GitHub (repo: Spectre056/deductiblelog-data).
 Maintained annually each December when IRS publishes new rates.
 
+## Key Gotchas
+
+- **@nextcloud/vue must be v9.x** — v8.x is Vue 2 and its layout components (NcContent, NcAppNavigation, NcAppContent, NcAppNavigationItem) use Vue 2 `_c()` internals that silently fail with Vue 3.
+- **NC cache busting** — NC appends `?v={nc-version-hash}` to JS URLs. The hash only changes when NC core updates, not when the app updates. Always hard-refresh (`Ctrl+Shift+R`) after deploys.
+- **No appinfo/app.php** — NC 33 does not support it; it was removed. Use IBootstrap in Application.php only.
+- **docker cp does not delete** — deploying does not remove files from the container; use `docker exec rm` for explicit deletions.
+
 ## Coding Conventions
 
 - PHP: strict types declared in every file (`declare(strict_types=1)`)
@@ -190,6 +196,25 @@ NC custom_apps host path: `/volume2/@docker/volumes/nextcloud_aio_nextcloud/_dat
 - main.js wired with Pinia + Router
 - deploy.sh created (npm build → rsync → occ upgrade on spectre-nas)
 
+### Session 5 (2026-04-23) — Phase 4: Mileage, Medical, Business
+- TaxRate + MileageLog + MedicalExpense + BusinessExpense Db layer (Entity + Mapper × 4)
+- MileageService: resolves IRS rate from tax_rates by year+purposeType, calculates deduction_amount = miles × rate/100, stores rate with record for historical accuracy
+- MileageController includes GET /api/mileage/rates endpoint (keyed by year); route placed before {id} routes to prevent collision
+- MedicalExpenseService + BusinessExpenseService: thin CRUD with nullable family_member_id
+- Three Pinia stores: mileage (tracks deduction + miles totals separately), medicalExpenses, businessExpenses
+- Mileage.vue: purpose-type colored badges, IRS rate auto-fill on year/purpose change, live deduction preview, rate hint showing all three purpose rates for selected year
+- Medical.vue: family member required, 10 categories (Insurance Premium through Other)
+- Business.vue: family member optional (Allison's consulting), description required, 10 categories
+
+### Session 4 (2026-04-23) — Phase 3b: Item Donations + Receipts
+- ItemCategory + ItemDonation + ItemDonationLine + Receipt Db layer (Entity + Mapper × 4)
+- ItemDonationService: creates/replaces line items atomically, calculates total_value
+- ReceiptService: stores files in NC Files under DeductibleLog/Receipts/{year}/ via IRootFolder
+- Controllers: ItemDonationController, ItemCategoryController (search endpoint), ReceiptController (index/upload/show/destroy)
+- Added receipt#index route: GET /api/receipts?entity_type=&entity_id=
+- itemDonations Pinia store
+- ItemDonations.vue: per-line debounced FMV search (300ms), condition-based value auto-fill (poor=min, good=mid, excellent=max), receipt upload/delete in edit dialog, stays open post-create for receipt attachment
+
 ### Session 3 (2026-04-23) — Phase 3a: Cash Donations
 - Phase 3 split: 3a = cash donations; 3b = item donations + FMV lookup + receipts
 - CashDonation Entity + CashDonationMapper (findAllByYear, findById, sumByYear)
@@ -197,13 +222,26 @@ NC custom_apps host path: `/volume2/@docker/volumes/nextcloud_aio_nextcloud/_dat
 - cashDonations Pinia store (fetchYear, create, update, remove, computed totalFormatted)
 - CashDonations.vue: year filter selector, donation table with totals row, add/edit dialog (charity NcSelect, date input with auto tax_year sync, amount, payment method, notes), delete confirm
 
+### Session 7 (2026-04-24) — Phase 6: Dashboard + Deploy
+- Dashboard.vue: year selector, 5 module summary cards (colored icons, amounts, router-link), grand total bar, charitable subtotal note
+- deploy.sh rewritten: tar|ssh pipe (UGOS Pro blocks rsync daemon), stages to /tmp/dl-deploy, docker cp into container (eckardmo is in docker group — no sudo), occ app:enable (idempotent, runs migrations)
+- First production deploy to spectre-nas confirmed: all 12 DB tables created, app enabled at 0.1.0
+
+### Session 6 (2026-04-24) — Phase 5: Reports + Settings
+- `lib/Http/HtmlReportResponse.php` — extends Response, renders raw HTML (for print-to-PDF report)
+- `lib/Db/Setting.php` + `SettingMapper.php` — key/value store per user (deductiblelog_settings)
+- `lib/Service/SettingsService.php` — get/save user settings, checkUpdates (GitHub rates.json), applyUpdates (tax_rates table)
+- `lib/Controller/SettingsController.php` — GET/PUT /api/settings, POST /api/settings/check-updates, POST /api/settings/apply-updates
+- `lib/Service/ReportService.php` — summarize(), csv(), txf() (charitable total only, N334), html() (full print-ready page)
+- `lib/Controller/ReportController.php` — /api/reports/summary|html|csv|txf (pdf returns 501)
+- `appinfo/routes.php` — added report#html route at /api/reports/html
+- `src/stores/settings.js` + `src/stores/reports.js` — Pinia stores
+- `src/views/Reports.vue` — summary table with % breakdown, HTML/CSV/TXF export buttons
+- `src/views/Settings.vue` — household name + default year form, IRS rates table with check/apply updates flow
+- Build confirmed clean
+
 ### Remaining Phases
-- **Phase 3b NEXT:** Item donations (line items + FMV lookup) + receipt attachments
-- **Phase 4:** Mileage + Medical + Business expenses
-- **Phase 3:** Cash donations + Item donations with FMV lookup + receipt attachments
-- **Phase 4:** Mileage + Medical expenses + Business expenses
-- **Phase 5:** Reports (PDF/CSV/TXF) + Settings + update mechanism
-- **Phase 6:** UI polish, validation, production deployment
+- **Phase 6 NEXT:** Dashboard.vue (summary widgets, year at a glance), UI polish, validation, production deployment
 - **Phase 7:** Mandalorian theme
 
 ## Phase 7 — Mandalorian Theme

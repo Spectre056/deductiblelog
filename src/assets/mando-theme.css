@@ -1,0 +1,439 @@
+@font-face {
+	font-family: 'Star Jedi';
+	src: url('./fonts/Starjedi.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* ── Full-viewport starfield on body ─────────────────────────────────────── */
+/*
+ * Stars go on body background with background-attachment:fixed so they cover
+ * the full viewport and don't scroll. NC content area is made transparent so
+ * the body starfield shows through it (sidebar keeps its opaque #141828 bg).
+ */
+body.mando-theme {
+	background-color: #1c2030 !important;
+	background-attachment: fixed !important;
+	background-repeat: no-repeat !important;
+	background-image:
+		radial-gradient(1.5px 1.5px at  3%  5%, rgba(255,255,255,0.90) 0%, transparent 100%),
+		radial-gradient(1px   1px   at  9% 14%, rgba(255,255,255,0.60) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 15%  2%, rgba(255,255,255,0.95) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 21% 20%, rgba(255,255,255,0.50) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 28%  9%, rgba(255,255,255,0.80) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 34% 27%, rgba(255,255,255,0.55) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 41%  4%, rgba(255,255,255,0.85) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 47% 17%, rgba(255,255,255,0.65) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 54%  1%, rgba(255,255,255,0.90) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 60% 23%, rgba(255,255,255,0.45) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 67%  8%, rgba(255,255,255,0.85) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 73% 31%, rgba(255,255,255,0.60) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 80%  5%, rgba(255,255,255,0.75) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 86% 19%, rgba(255,255,255,0.55) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 92%  3%, rgba(255,255,255,0.90) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 97% 12%, rgba(255,255,255,0.70) 0%, transparent 100%),
+		radial-gradient(1px   1px   at  6% 38%, rgba(255,255,255,0.50) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 13% 45%, rgba(255,255,255,0.80) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 19% 33%, rgba(255,255,255,0.55) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 26% 52%, rgba(255,255,255,0.65) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 33% 41%, rgba(255,255,255,0.85) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 40% 58%, rgba(255,255,255,0.50) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 48% 36%, rgba(255,255,255,0.75) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 55% 49%, rgba(255,255,255,0.60) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 62% 43%, rgba(255,255,255,0.45) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 70% 55%, rgba(255,255,255,0.85) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 77% 37%, rgba(255,255,255,0.65) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 84% 50%, rgba(255,255,255,0.80) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 91% 44%, rgba(255,255,255,0.55) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 96% 60%, rgba(255,255,255,0.70) 0%, transparent 100%),
+		radial-gradient(1px   1px   at  4% 65%, rgba(255,255,255,0.50) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 11% 72%, rgba(255,255,255,0.85) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 18% 68%, rgba(255,255,255,0.60) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 25% 78%, rgba(255,255,255,0.75) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 32% 63%, rgba(255,255,255,0.45) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 39% 85%, rgba(255,255,255,0.60) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 46% 74%, rgba(255,255,255,0.90) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 53% 67%, rgba(255,255,255,0.50) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 61% 80%, rgba(255,255,255,0.80) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 68% 70%, rgba(255,255,255,0.55) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 75% 88%, rgba(255,255,255,0.65) 0%, transparent 100%),
+		radial-gradient(2px   2px   at 82% 76%, rgba(255,255,255,0.85) 0%, transparent 100%),
+		radial-gradient(1px   1px   at 89% 83%, rgba(255,255,255,0.70) 0%, transparent 100%),
+		radial-gradient(1.5px 1.5px at 95% 92%, rgba(255,255,255,0.90) 0%, transparent 100%),
+		/* subtle nebula glows */
+		radial-gradient(ellipse 55% 28% at 75% 15%, rgba(201,168,76,0.035) 0%, transparent 70%),
+		radial-gradient(ellipse 45% 22% at 20% 70%, rgba(138,155,176,0.03)  0%, transparent 70%) !important;
+}
+
+/* Transparent chain — every wrapper between body and the view must be clear */
+body.mando-theme #content,
+body.mando-theme #app,
+body.mando-theme #content-vue,
+body.mando-theme #app-content,
+body.mando-theme #app-content-vue,
+body.mando-theme .app-content,
+body.mando-theme .app-content-wrapper {
+	background: transparent !important;
+}
+
+/* ── Revised Beskar palette (dark navy, not pure black) ─────────────────── */
+body.mando-theme {
+	/* Backgrounds */
+	--color-main-background:               #1c2030;
+	--color-background-dark:               #252a3a;
+	--color-background-hover:              rgba(160, 174, 192, 0.10);
+	--color-background-translucent:        rgba(28, 32, 48, 0.97);
+
+	/* Text — high contrast on dark navy */
+	--color-main-text:                     #e2e8f0;
+	--color-text-light:                    #a0aec0;
+	--color-text-lighter:                  #718096;
+	--color-text-maxcontrast:              #f0f4f8;
+
+	/* Borders */
+	--color-border:                        #353b52;
+	--color-border-dark:                   #4a5270;
+
+	/* Primary — Mandalorian gold */
+	--color-primary-element:               #c9a84c;
+	--color-primary-element-text:          #0f1218;
+	--color-primary-element-light:         rgba(201, 168, 76, 0.18);
+
+	/* Status */
+	--color-error:                         #fc8181;
+	--color-warning:                       #e07b2a;
+	--color-success:                       #68d391;
+	--color-info:                          #8a9bb0;
+
+	/* NC navigation (these override the sidebar bg) */
+	--color-navigation-background:         #141828;
+	--color-navigation-background-translucent: rgba(20, 24, 40, 0.97);
+	--color-sidebar-background:            #141828;
+
+	/* Custom tokens */
+	--dl-beskar:  #8a9bb0;
+	--dl-gold:    #c9a84c;
+	--dl-amber:   #e07b2a;
+	--dl-bg:      #1c2030;
+	--dl-surface: #252a3a;
+	--dl-border:  #353b52;
+}
+
+/* ── Headings: Star Jedi font ────────────────────────────────────────────── */
+body.mando-theme h1,
+body.mando-theme h2,
+body.mando-theme h3 {
+	font-family: 'Star Jedi', sans-serif;
+	letter-spacing: 0.06em;
+	color: var(--dl-gold);
+}
+
+/* ── App / page backgrounds ──────────────────────────────────────────────── */
+body.mando-theme #content-vue,
+body.mando-theme .app-content,
+body.mando-theme #app-content-vue {
+	color: var(--color-main-text);
+}
+
+/* ── NC Sidebar / Navigation ─────────────────────────────────────────────── */
+body.mando-theme .app-navigation,
+body.mando-theme #app-navigation-vue {
+	background: #141828 !important;
+	border-right: 1px solid #353b52 !important;
+}
+
+body.mando-theme .app-navigation__body,
+body.mando-theme #app-navigation-vue .app-navigation__body {
+	background: #141828 !important;
+}
+
+/* Nav entry links/buttons — readable silver text */
+body.mando-theme .navigation-entry > a,
+body.mando-theme .navigation-entry > button,
+body.mando-theme .navigation-entry__link,
+body.mando-theme .app-navigation-entry > a,
+body.mando-theme .app-navigation-entry > button {
+	color: #b0bec8 !important;
+}
+
+body.mando-theme .navigation-entry__name,
+body.mando-theme .app-navigation-entry__name {
+	color: #b0bec8 !important;
+}
+
+/* Hover state */
+body.mando-theme .navigation-entry > a:hover,
+body.mando-theme .navigation-entry > button:hover,
+body.mando-theme .app-navigation-entry > a:hover,
+body.mando-theme .app-navigation-entry > button:hover {
+	background: rgba(138, 155, 176, 0.14) !important;
+	color: #e2e8f0 !important;
+}
+
+body.mando-theme .navigation-entry > a:hover .navigation-entry__name,
+body.mando-theme .navigation-entry > button:hover .navigation-entry__name,
+body.mando-theme .app-navigation-entry > a:hover .app-navigation-entry__name,
+body.mando-theme .app-navigation-entry > button:hover .app-navigation-entry__name {
+	color: #e2e8f0 !important;
+}
+
+/* Active / current route — gold highlight */
+body.mando-theme .navigation-entry > a.router-link-active,
+body.mando-theme .navigation-entry > a.router-link-exact-active,
+body.mando-theme .navigation-entry.active > a,
+body.mando-theme .navigation-entry.active > button,
+body.mando-theme .app-navigation-entry > a.router-link-active,
+body.mando-theme .app-navigation-entry > a.router-link-exact-active,
+body.mando-theme .app-navigation-entry.active > a,
+body.mando-theme .app-navigation-entry.active > button {
+	background: rgba(201, 168, 76, 0.18) !important;
+	color: #c9a84c !important;
+	font-weight: 600;
+}
+
+body.mando-theme .navigation-entry > a.router-link-active .navigation-entry__name,
+body.mando-theme .navigation-entry > a.router-link-exact-active .navigation-entry__name,
+body.mando-theme .app-navigation-entry > a.router-link-active .app-navigation-entry__name,
+body.mando-theme .app-navigation-entry > a.router-link-exact-active .app-navigation-entry__name {
+	color: #c9a84c !important;
+}
+
+/* ── NC Buttons ──────────────────────────────────────────────────────────── */
+body.mando-theme .button-vue {
+	background: rgba(138, 155, 176, 0.14) !important;
+	color: #e2e8f0 !important;
+	border-color: #4a5270 !important;
+}
+
+body.mando-theme .button-vue:hover {
+	background: rgba(138, 155, 176, 0.24) !important;
+	border-color: #8a9bb0 !important;
+}
+
+body.mando-theme .button-vue--vue-primary {
+	background: #c9a84c !important;
+	color: #0f1218 !important;
+	border-color: #c9a84c !important;
+}
+
+body.mando-theme .button-vue--vue-primary:hover {
+	background: #dbb957 !important;
+	border-color: #dbb957 !important;
+}
+
+/* ── NC NoteCard / alert boxes ───────────────────────────────────────────── */
+body.mando-theme .notecard {
+	background: rgba(138, 155, 176, 0.12) !important;
+	border-color: rgba(138, 155, 176, 0.35) !important;
+	color: #e2e8f0 !important;
+}
+
+body.mando-theme .notecard--success {
+	background: rgba(104, 211, 145, 0.12) !important;
+	border-color: rgba(104, 211, 145, 0.4) !important;
+}
+
+body.mando-theme .notecard--error {
+	background: rgba(252, 129, 129, 0.12) !important;
+	border-color: rgba(252, 129, 129, 0.4) !important;
+}
+
+body.mando-theme .notecard--warning {
+	background: rgba(224, 123, 42, 0.12) !important;
+	border-color: rgba(224, 123, 42, 0.4) !important;
+}
+
+/* ── NC Select / NcSelect ────────────────────────────────────────────────── */
+body.mando-theme .v-select .vs__dropdown-toggle {
+	background: #252a3a !important;
+	border-color: #4a5270 !important;
+	color: #e2e8f0 !important;
+}
+
+body.mando-theme .v-select .vs__dropdown-menu {
+	background: #252a3a !important;
+	border-color: #4a5270 !important;
+}
+
+body.mando-theme .v-select .vs__option--highlight {
+	background: rgba(201, 168, 76, 0.18) !important;
+	color: #c9a84c !important;
+}
+
+body.mando-theme .v-select .vs__selected {
+	color: #e2e8f0 !important;
+}
+
+body.mando-theme .v-select .vs__search,
+body.mando-theme .v-select .vs__search:focus {
+	color: #e2e8f0 !important;
+}
+
+body.mando-theme .v-select .vs__clear,
+body.mando-theme .v-select .vs__open-indicator {
+	fill: #a0aec0 !important;
+}
+
+/* ── NC Dialog / Modal ───────────────────────────────────────────────────── */
+body.mando-theme .nc-dialog,
+body.mando-theme .dialog {
+	background: #252a3a !important;
+	color: #e2e8f0 !important;
+	border-color: #353b52 !important;
+}
+
+body.mando-theme .nc-dialog .dialog__name,
+body.mando-theme .dialog .dialog__name {
+	color: #e2e8f0 !important;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+body.mando-theme .dl-card {
+	background: #252a3a;
+	border-color: #353b52;
+	color: #e2e8f0;
+}
+
+body.mando-theme .dl-card:hover {
+	border-color: #c9a84c;
+	box-shadow: 0 2px 16px rgba(201, 168, 76, 0.20);
+}
+
+body.mando-theme .dl-card-label {
+	color: #a0aec0;
+}
+
+body.mando-theme .dl-card-cash     .dl-card-icon { background: rgba(138,155,176,0.18); color: #a0aec0; }
+body.mando-theme .dl-card-item     .dl-card-icon { background: rgba(138,155,176,0.18); color: #a0aec0; }
+body.mando-theme .dl-card-mileage  .dl-card-icon { background: rgba(224,123,42,0.20);  color: #e07b2a; }
+body.mando-theme .dl-card-medical  .dl-card-icon { background: rgba(201,168,76,0.20);  color: #c9a84c; }
+body.mando-theme .dl-card-business .dl-card-icon { background: rgba(201,168,76,0.16);  color: #c9a84c; }
+
+/* ── Grand total bar ─────────────────────────────────────────────────────── */
+body.mando-theme .dl-grand-bar {
+	background: linear-gradient(135deg, #1e2540 0%, #2a3058 100%);
+	border: 1px solid var(--dl-gold);
+	color: var(--dl-gold);
+	box-shadow: 0 0 24px rgba(201, 168, 76, 0.18);
+}
+
+/* ── Fixed-position overlay divs (teleported to body via App.vue) ────────── */
+
+/* Jaing Head signet — large centred watermark in the main content area */
+.dl-page-watermark {
+	position: fixed;
+	left: var(--navigation-width, 300px);
+	right: 0;
+	top: var(--header-height, 50px);
+	bottom: 0;
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-size: auto 85%;
+	opacity: 0.10;
+	pointer-events: none;
+	z-index: 10;
+}
+
+/* Movie-accurate helmet — lower-left corner of the sidebar */
+.dl-nav-helmet {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: var(--navigation-width, 300px);
+	height: 240px;
+	background-repeat: no-repeat;
+	background-position: center bottom;
+	background-size: auto 220px;
+	opacity: 0.18;
+	pointer-events: none;
+	z-index: 250;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+body.mando-theme .dl-table th {
+	color: var(--dl-beskar);
+	border-color: #353b52;
+	background: transparent;
+}
+
+body.mando-theme .dl-table td {
+	border-color: #2a3050;
+	color: #e2e8f0;
+}
+
+body.mando-theme .dl-table tr:hover td {
+	background: rgba(138, 155, 176, 0.07);
+}
+
+body.mando-theme .dl-total-row td,
+body.mando-theme tfoot td {
+	color: var(--dl-gold) !important;
+	border-top-color: #4a5270 !important;
+}
+
+/* ── Form inputs ─────────────────────────────────────────────────────────── */
+body.mando-theme .dl-text-input,
+body.mando-theme .dl-year-select,
+body.mando-theme input[type="text"],
+body.mando-theme input[type="number"],
+body.mando-theme input[type="date"],
+body.mando-theme select,
+body.mando-theme textarea {
+	background: #141828 !important;
+	border-color: #4a5270 !important;
+	color: #e2e8f0 !important;
+}
+
+body.mando-theme .dl-text-input:focus,
+body.mando-theme .dl-year-select:focus,
+body.mando-theme input:focus,
+body.mando-theme select:focus,
+body.mando-theme textarea:focus {
+	border-color: var(--dl-gold) !important;
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.20);
+}
+
+/* ── View titles / section headings ─────────────────────────────────────── */
+body.mando-theme .dl-view-title h2,
+body.mando-theme .dl-section h3,
+body.mando-theme .dl-export-section h3 {
+	color: var(--dl-gold);
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+body.mando-theme .dl-badge-charitable { background: rgba(138,155,176,0.22); color: #b0c0d0; }
+body.mando-theme .dl-badge-medical    { background: rgba(201,168,76,0.22);  color: #c9a84c; }
+body.mando-theme .dl-badge-business   { background: rgba(224,123,42,0.22);  color: #e07b2a; }
+
+/* ── Mileage purpose badges (in Mileage view) ────────────────────────────── */
+body.mando-theme .dl-badge { color: #e2e8f0; }
+
+/* ── Year total / stats text ─────────────────────────────────────────────── */
+body.mando-theme .dl-year-total,
+body.mando-theme .dl-grand-total {
+	color: var(--dl-gold) !important;
+}
+
+/* ── Hint text ───────────────────────────────────────────────────────────── */
+body.mando-theme .dl-hint,
+body.mando-theme .dl-export-hint {
+	color: #718096;
+}
+
+/* ── Charitable subtotal note ────────────────────────────────────────────── */
+body.mando-theme .dl-charitable-note {
+	color: #a0aec0;
+}
+
+/* ── Checkbox label ──────────────────────────────────────────────────────── */
+body.mando-theme .dl-checkbox-label {
+	color: #e2e8f0;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────── */
+body.mando-theme ::-webkit-scrollbar              { width: 6px; height: 6px; }
+body.mando-theme ::-webkit-scrollbar-track        { background: #1c2030; }
+body.mando-theme ::-webkit-scrollbar-thumb        { background: #4a5270; border-radius: 3px; }
+body.mando-theme ::-webkit-scrollbar-thumb:hover  { background: #8a9bb0; }
