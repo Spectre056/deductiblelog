@@ -35,7 +35,7 @@ class MileageLog extends Entity {
     protected ?int $familyMemberId = null;
     protected int $taxYear = 0;
     protected string $date = '';
-    protected string $purposeType = 'charitable';
+    protected string $purposeType = '';
     protected ?string $description = null;
     protected string $miles = '0.0';
     protected string $rateCents = '0.0';

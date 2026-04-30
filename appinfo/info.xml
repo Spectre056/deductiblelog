@@ -10,7 +10,7 @@ medical expenses, and business expenses — all in one place. Generates
 accountant-ready reports and CSV/TXF exports. Inspired by Intuit's
 discontinued ItsDeductible.
     ]]></description>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <licence>agpl</licence>
     <author>Spectre056</author>
     <namespace>DeductibleLog</namespace>

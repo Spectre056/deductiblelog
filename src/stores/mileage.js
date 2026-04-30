@@ -60,10 +60,8 @@ export const useMileageStore = defineStore('mileage', () => {
 			generateUrl('/apps/deductiblelog/api/mileage'),
 			payload,
 		)
-		if (data.data.tax_year === activeYear.value) {
-			logs.value.unshift(data.data)
-			yearTotal.value = (parseFloat(yearTotal.value) + parseFloat(data.data.deduction_amount)).toFixed(2)
-			yearMiles.value = (parseFloat(yearMiles.value) + parseFloat(data.data.miles)).toFixed(1)
+		if (Number(data.data.tax_year) === Number(activeYear.value)) {
+			await fetchYear(activeYear.value)
 		}
 		return data.data
 	}

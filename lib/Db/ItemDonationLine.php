@@ -27,7 +27,7 @@ class ItemDonationLine extends Entity {
     protected int $itemCategoryId = 0;
     protected string $description = '';
     protected int $quantity = 1;
-    protected string $condition = 'good';
+    protected string $condition = '';
     protected string $unitValue = '0.00';
     protected string $totalValue = '0.00';
 

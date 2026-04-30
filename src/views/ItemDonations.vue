@@ -130,20 +130,22 @@
 					</div>
 
 					<span v-if="formErrors.lines" class="dl-error">{{ formErrors.lines }}</span>
+					<p v-if="itemCategoriesError" class="dl-error">{{ itemCategoriesError }}</p>
+					<p v-else-if="!itemCategoriesLoading && itemCategoryOptions.length === 0" class="dl-fmv-empty">
+						The FMV item catalog is empty, so item names must be typed manually for now.
+					</p>
 
 					<div v-for="(line, idx) in formLines" :key="idx" class="dl-line-card">
 						<div class="dl-line-top">
 							<div class="dl-field-group dl-field-grow">
 								<NcSelect
 									v-model="line.itemOption"
-									:options="line.searchResults"
-									:loading="line.searchLoading"
-									:filterable="false"
+									:options="itemCategoryOptions"
+									:loading="itemCategoriesLoading"
 									:taggable="true"
 									:create-option="tag => ({ id: null, label: tag, min_value: '0.00', max_value: '0.00', unit: 'each' })"
 									label="label"
 									placeholder="Search or type item name…"
-									@search="q => onSearchInput(line, q)"
 									@update:model-value="onItemSelect(line)"
 								/>
 							</div>
@@ -290,11 +292,15 @@ const todayISO       = new Date().toISOString().split('T')[0]
 
 const store        = useItemDonationsStore()
 const charityStore = useCharitiesStore()
+const itemCategoryOptions = ref([])
+const itemCategoriesLoading = ref(false)
+const itemCategoriesError = ref('')
 
 onMounted(async () => {
 	await Promise.all([
 		store.fetchYear(CURRENT_YEAR),
 		charityStore.charities.length === 0 ? charityStore.fetchAll() : Promise.resolve(),
+		loadItemCategories(),
 	])
 })
 
@@ -344,14 +350,11 @@ const formTotalFormatted = computed(() => {
 
 function newLine() {
 	return {
-		itemOption:    null,
-		searchResults: [],
-		searchLoading: false,
-		searchTimer:   null,
-		condition:     'good',
-		quantity:      1,
-		unitValue:     '',
-		totalValue:    '0.00',
+		itemOption: null,
+		condition:  'good',
+		quantity:   1,
+		unitValue:  '',
+		totalValue: '0.00',
 	}
 }
 
@@ -367,32 +370,27 @@ function syncYearFromDate() {
 	if (form.date) form.taxYear = parseInt(form.date.substring(0, 4), 10)
 }
 
-// ── FMV search ──────────────────────────────────────────────────────────────
+async function loadItemCategories() {
+	if (itemCategoryOptions.value.length > 0 || itemCategoriesLoading.value) return
 
-function onSearchInput(line, query) {
-	clearTimeout(line.searchTimer)
-	if (!query || query.length < 2) {
-		line.searchResults = []
-		return
+	itemCategoriesLoading.value = true
+	itemCategoriesError.value = ''
+
+	try {
+		const { data } = await axios.get(generateUrl('/apps/deductiblelog/api/item-categories'))
+		itemCategoryOptions.value = (data.data ?? []).map(category => ({
+			id:        category.id,
+			label:     category.name,
+			min_value: category.min_value,
+			max_value: category.max_value,
+			unit:      category.unit,
+		}))
+	} catch (error) {
+		itemCategoriesError.value = error?.response?.data?.message ?? 'Unable to load the FMV item catalog.'
+		itemCategoryOptions.value = []
+	} finally {
+		itemCategoriesLoading.value = false
 	}
-	line.searchLoading = true
-	line.searchTimer   = setTimeout(async () => {
-		try {
-			const { data } = await axios.get(
-				generateUrl('/apps/deductiblelog/api/item-categories/search'),
-				{ params: { q: query, limit: 20 } },
-			)
-			line.searchResults = data.data.map(c => ({
-				id:        c.id,
-				label:     c.name,
-				min_value: c.min_value,
-				max_value: c.max_value,
-				unit:      c.unit,
-			}))
-		} finally {
-			line.searchLoading = false
-		}
-	}, 300)
 }
 
 function onItemSelect(line) {
@@ -433,14 +431,14 @@ function openEdit(donation) {
 		notes:   donation.notes ?? '',
 	})
 	formLines.value = (donation.lines ?? []).map(l => ({
-		itemOption:    l.item_category_id ? { id: l.item_category_id, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' } : { id: null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
-		searchResults: [],
-		searchLoading: false,
-		searchTimer:   null,
-		condition:     l.condition,
-		quantity:      l.quantity,
-		unitValue:     l.unit_value,
-		totalValue:    l.total_value,
+		itemOption: l.item_category_id
+			? (itemCategoryOptions.value.find(option => option.id === l.item_category_id)
+				?? { id: l.item_category_id, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' })
+			: { id: null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
+		condition:  l.condition,
+		quantity:   l.quantity,
+		unitValue:  l.unit_value,
+		totalValue: l.total_value,
 	}))
 	editTarget.value = donation
 	showDialog.value = true
@@ -491,14 +489,11 @@ async function save() {
 			// Stay open in edit mode so user can attach receipts
 			editTarget.value = saved
 			formLines.value  = (saved.lines ?? []).map(l => ({
-				itemOption:    { id: l.item_category_id || null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
-				searchResults: [],
-				searchLoading: false,
-				searchTimer:   null,
-				condition:     l.condition,
-				quantity:      l.quantity,
-				unitValue:     l.unit_value,
-				totalValue:    l.total_value,
+				itemOption: { id: l.item_category_id || null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
+				condition:  l.condition,
+				quantity:   l.quantity,
+				unitValue:  l.unit_value,
+				totalValue: l.total_value,
 			}))
 			return
 		}
@@ -777,6 +772,12 @@ function receiptDownloadUrl(id) {
 .dl-fmv-hint {
 	font-size: 0.75rem;
 	color: var(--color-text-lighter);
+}
+
+.dl-fmv-empty {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--color-text-maxcontrast);
 }
 
 .dl-lines-total {

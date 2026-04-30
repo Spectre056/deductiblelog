@@ -167,6 +167,7 @@
 
 				<!-- Rate hint -->
 				<p v-if="rateHint" class="dl-rate-hint">{{ rateHint }}</p>
+				<p v-if="saveError" class="dl-error">{{ saveError }}</p>
 			</div>
 
 			<template #actions>
@@ -265,6 +266,7 @@ const editTarget   = ref(null)
 const deleteTarget = ref(null)
 const saving       = ref(false)
 const deleting     = ref(false)
+const saveError    = ref('')
 
 const emptyForm = () => ({
 	purposeType: 'charitable',
@@ -306,6 +308,7 @@ function openAdd() {
 	Object.assign(form, emptyForm())
 	form.rateCents   = store.rateFor(CURRENT_YEAR, 'charitable')
 	editTarget.value = null
+	saveError.value  = ''
 	showDialog.value = true
 }
 
@@ -320,6 +323,7 @@ function openEdit(log) {
 		rateCents:   log.rate_cents,
 	})
 	editTarget.value = log
+	saveError.value = ''
 	showDialog.value = true
 }
 
@@ -327,10 +331,12 @@ function resetForm() {
 	Object.assign(form, emptyForm())
 	Object.keys(formErrors).forEach(k => delete formErrors[k])
 	editTarget.value = null
+	saveError.value = ''
 }
 
 async function save() {
 	Object.keys(formErrors).forEach(k => delete formErrors[k])
+	saveError.value = ''
 
 	if (!form.date)                                  formErrors.date  = 'Date is required'
 	if (!form.miles || parseFloat(form.miles) <= 0)  formErrors.miles = 'Enter miles driven'
@@ -354,6 +360,8 @@ async function save() {
 			await store.create(payload)
 		}
 		showDialog.value = false
+	} catch (error) {
+		saveError.value = error?.response?.data?.message ?? 'Unable to save this mileage entry.'
 	} finally {
 		saving.value = false
 	}
