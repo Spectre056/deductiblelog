@@ -205,8 +205,8 @@
 							</a>
 							<div v-if="line.showDetails" class="dl-line-details">
 								<div class="dl-field-group">
-									<label class="dl-label-sm">Acquired (month)</label>
-									<input v-model="line.dateAcquired" type="month" class="dl-input-sm" />
+									<label class="dl-label-sm">Acquired (YYYY-MM or Various)</label>
+									<input v-model="line.dateAcquired" type="text" placeholder="Various" class="dl-input-sm dl-input-month" />
 								</div>
 								<div class="dl-field-group">
 									<label class="dl-label-sm">How acquired</label>
@@ -216,7 +216,7 @@
 									</select>
 								</div>
 								<div class="dl-field-group">
-									<label class="dl-label-sm">Cost basis $</label>
+									<label class="dl-label-sm">Cost basis $ (line total)</label>
 									<input v-model="line.costBasis" type="number" min="0" step="0.01" class="dl-input-sm dl-input-money" />
 								</div>
 								<div class="dl-field-group">
@@ -872,6 +872,7 @@ function receiptDownloadUrl(id) {
 
 .dl-input-qty   { width: 60px; }
 .dl-input-money { width: 80px; }
+.dl-input-month { width: 110px; }
 
 .dl-line-total {
 	font-weight: 600;

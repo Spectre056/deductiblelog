@@ -63,6 +63,7 @@ return [
         // Reports & exports
         ['name' => 'report#summary', 'url' => '/api/reports/summary', 'verb' => 'GET'],
         ['name' => 'report#html',    'url' => '/api/reports/html',    'verb' => 'GET'],
+        ['name' => 'report#cpa',     'url' => '/api/reports/cpa',     'verb' => 'GET'],
         ['name' => 'report#csv',     'url' => '/api/reports/csv',     'verb' => 'GET'],
         ['name' => 'report#txf',     'url' => '/api/reports/txf',     'verb' => 'GET'],
         ['name' => 'report#years',   'url' => '/api/years',           'verb' => 'GET'],

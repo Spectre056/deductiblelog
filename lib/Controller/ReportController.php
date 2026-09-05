@@ -6,6 +6,7 @@ namespace OCA\DeductibleLog\Controller;
 
 use OCA\DeductibleLog\AppInfo\Application;
 use OCA\DeductibleLog\Http\HtmlReportResponse;
+use OCA\DeductibleLog\Service\CpaReportService;
 use OCA\DeductibleLog\Service\ReportService;
 use OCA\DeductibleLog\Service\SettingsService;
 use OCA\DeductibleLog\Service\YearService;
@@ -22,6 +23,7 @@ class ReportController extends Controller {
     public function __construct(
         IRequest $request,
         private ReportService $service,
+        private CpaReportService $cpaService,
         private YearService $yearService,
         private SettingsService $settingsService,
         private ?string $userId,
@@ -60,6 +62,12 @@ class ReportController extends Controller {
     public function txf(): DataDownloadResponse {
         $year = $this->taxYearParam();
         return new DataDownloadResponse($this->service->txf($this->uid(), $year), "deductions_{$year}.txf", 'application/octet-stream');
+    }
+
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function cpa(): HtmlReportResponse {
+        return new HtmlReportResponse($this->cpaService->html($this->uid(), $this->taxYearParam()));
     }
 
     #[NoAdminRequired]

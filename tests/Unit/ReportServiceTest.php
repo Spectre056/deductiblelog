@@ -16,6 +16,7 @@ use OCA\DeductibleLog\Service\MileageService;
 use OCA\DeductibleLog\Service\ReportService;
 use OCA\DeductibleLog\Service\SettingsService;
 use OCP\App\IAppManager;
+use OCP\IDateTimeZone;
 use PHPUnit\Framework\TestCase;
 
 class ReportServiceTest extends TestCase {
@@ -63,7 +64,9 @@ class ReportServiceTest extends TestCase {
         $apps = $this->createMock(IAppManager::class);
         $apps->method('getAppVersion')->willReturn('0.2.0');
 
-        $this->service = new ReportService($cash, $items, $mileage, $medical, $business, $charities, $family, $settings, $apps);
+        $tz = $this->createMock(IDateTimeZone::class);
+        $tz->method('getTimeZone')->willReturn(new \DateTimeZone('America/New_York'));
+        $this->service = new ReportService($cash, $items, $mileage, $medical, $business, $charities, $family, $settings, $apps, $tz);
     }
 
     public function testSummaryMapsMileageOntoReturnLines(): void {

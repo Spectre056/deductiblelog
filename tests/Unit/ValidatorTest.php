@@ -60,6 +60,17 @@ class ValidatorTest extends TestCase {
         $this->assertNull($v->optionalInt(null, 'id'));
     }
 
+    public function testYearMonthAcceptsVarious(): void {
+        $v = new Validator();
+        $this->assertSame('Various', $v->yearMonth('various', 'd'));
+        $this->assertSame('Various', $v->yearMonth('VARIOUS', 'd'));
+        $this->assertSame('2021-06', $v->yearMonth('2021-06', 'd'));
+        $this->assertNull($v->yearMonth('', 'd'));
+        $this->assertFalse($v->hasErrors());
+        $this->assertNull($v->yearMonth('06/2021', 'd'));
+        $this->assertTrue($v->hasErrors());
+    }
+
     public function testThrowCarriesAllFieldErrors(): void {
         $v = new Validator();
         $v->date('nope');

@@ -26,6 +26,16 @@ class ReceiptMapper extends QBMapper {
         return $this->findEntities($qb);
     }
 
+    /** @return Receipt[] */
+    public function findAllByUser(string $userId): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+           ->from($this->getTableName())
+           ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+           ->orderBy('created_at', 'ASC');
+        return $this->findEntities($qb);
+    }
+
     public function findById(int $id, string $userId): Receipt {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')

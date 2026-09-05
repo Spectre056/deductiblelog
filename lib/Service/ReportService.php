@@ -6,6 +6,7 @@ namespace OCA\DeductibleLog\Service;
 
 use OCA\DeductibleLog\AppInfo\Application;
 use OCP\App\IAppManager;
+use OCP\IDateTimeZone;
 
 class ReportService {
 
@@ -25,6 +26,7 @@ class ReportService {
         private FamilyMemberService    $familyService,
         private SettingsService        $settingsService,
         private IAppManager            $appManager,
+        private IDateTimeZone          $timeZone,
     ) {}
 
     // ── Summary ──────────────────────────────────────────────────────────────
@@ -282,7 +284,7 @@ class ReportService {
         $settings   = $this->settingsService->get($userId);
         $charityMap = $this->buildCharityMap($userId);
         $memberMap  = $this->buildMemberMap($userId);
-        $generated  = (new \DateTimeImmutable())->format('F j, Y g:i A');
+        $generated  = (new \DateTimeImmutable('now', $this->timeZone->getTimeZone()))->format('F j, Y g:i A T');
         $household  = htmlspecialchars($settings['household_name'] ?? 'My Household');
 
         $cash     = $this->cashService->findAll($userId, $taxYear);

@@ -105,9 +105,13 @@
 			<div class="dl-export-section">
 				<h3>Export</h3>
 				<div class="dl-export-buttons">
-					<NcButton type="primary" @click="doExport(() => store.openHtml(selectedYear))">
+					<NcButton type="primary" @click="doExport(() => store.openCpa(selectedYear))">
 						<template #icon><FileDocumentOutlineIcon :size="20" /></template>
-						HTML Report
+						CPA Workpapers
+					</NcButton>
+					<NcButton @click="doExport(() => store.openHtml(selectedYear))">
+						<template #icon><FileDocumentOutlineIcon :size="20" /></template>
+						Household Report
 					</NcButton>
 					<NcButton @click="doExport(() => store.downloadCsv(selectedYear))">
 						<template #icon><TableIcon :size="20" /></template>
@@ -122,7 +126,7 @@
 					{{ settingsStore.isMandoTheme ? 'I have spoken.' : 'Export started.' }}
 				</NcNoteCard>
 				<p class="dl-export-hint">
-					<strong>HTML Report</strong> opens in a new tab — use your browser's Print function to save as PDF.<br>
+					<strong>CPA Workpapers</strong> is the consolidated preparer report: return-line summary, compliance checklist, Form 8283 similar-item groups, and full detail. <strong>Household Report</strong> is the shorter summary. Both open in a new tab — use your browser's Print function to save as PDF.<br>
 					<strong>TXF</strong> can be imported into TurboTax Desktop for Schedule A charitable deductions.
 				</p>
 			</div>

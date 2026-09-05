@@ -134,14 +134,20 @@ class Validator {
         return $this->positiveInt($value, $field);
     }
 
-    /** Optional YYYY-MM (Form 8283 wants month and year acquired). */
+    /**
+     * Optional YYYY-MM, or "Various" (Form 8283 column (e) accepts it for
+     * household goods accumulated over time).
+     */
     public function yearMonth(mixed $value, string $field): ?string {
         if ($value === null || $value === '') {
             return null;
         }
         $s = is_string($value) ? trim($value) : '';
+        if (strcasecmp($s, 'various') === 0) {
+            return 'Various';
+        }
         if (!preg_match('/^(\d{4})-(\d{2})$/', $s, $m) || (int) $m[2] < 1 || (int) $m[2] > 12 || (int) $m[1] < 1900) {
-            $this->fail($field, "{$field} must be a month in YYYY-MM form");
+            $this->fail($field, "{$field} must be a month in YYYY-MM form, or Various");
             return null;
         }
         return $s;

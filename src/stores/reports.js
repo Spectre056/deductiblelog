@@ -31,6 +31,11 @@ export const useReportsStore = defineStore('reports', () => {
 		window.open(url, '_blank')
 	}
 
+	function openCpa(year) {
+		const url = generateUrl('/apps/deductiblelog/api/reports/cpa') + '?tax_year=' + year
+		window.open(url, '_blank')
+	}
+
 	function downloadCsv(year) {
 		const url = generateUrl('/apps/deductiblelog/api/reports/csv') + '?tax_year=' + year
 		window.open(url, '_self')
@@ -41,5 +46,5 @@ export const useReportsStore = defineStore('reports', () => {
 		window.open(url, '_self')
 	}
 
-	return { summary, activeYear, loading, error, fetchSummary, openHtml, downloadCsv, downloadTxf }
+	return { summary, activeYear, loading, error, fetchSummary, openHtml, openCpa, downloadCsv, downloadTxf }
 })
