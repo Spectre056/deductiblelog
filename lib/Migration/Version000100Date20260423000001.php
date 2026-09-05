@@ -54,16 +54,6 @@ class Version000100Date20260423000001 extends SimpleMigrationStep {
     }
 
     private function seedItemCategories(): void {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('id')->from('deductiblelog_item_categories')->setMaxResults(1);
-        $result = $qb->executeQuery();
-        $exists = $result->fetch();
-        $result->closeCursor();
-
-        if ($exists) {
-            return;
-        }
-
         // [category, name, min_value, max_value, unit]
         // Source: Salvation Army Donation Value Guide
         $items = [
@@ -381,6 +371,20 @@ class Version000100Date20260423000001 extends SimpleMigrationStep {
         ];
 
         foreach ($items as [$category, $name, $minValue, $maxValue, $unit]) {
+            $qb = $this->db->getQueryBuilder();
+            $qb->select('id')
+               ->from('deductiblelog_item_categories')
+               ->where($qb->expr()->eq('category', $qb->createNamedParameter($category)))
+               ->andWhere($qb->expr()->eq('name', $qb->createNamedParameter($name)))
+               ->setMaxResults(1);
+            $result = $qb->executeQuery();
+            $exists = $result->fetch();
+            $result->closeCursor();
+
+            if ($exists) {
+                continue;
+            }
+
             $qb = $this->db->getQueryBuilder();
             $qb->insert('deductiblelog_item_categories')->values([
                 'category'  => $qb->createNamedParameter($category),

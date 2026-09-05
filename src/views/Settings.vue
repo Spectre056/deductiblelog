@@ -144,7 +144,7 @@
 						Crafted by <strong>Michael Eckard</strong> (Spectre056)<br>
 						with an AI co-pilot riding shotgun on the Razor Crest.
 					</p>
-					<p class="dl-about-version">v0.1.0 &mdash; This is the Way.</p>
+					<p class="dl-about-version">v0.1.2 &mdash; This is the Way.</p>
 				</div>
 			</section>
 		</template>

@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
-# Set these to match your environment before running.
-NAS_HOST="your-nas-hostname"
-NAS_USER="your-nas-username"
+# Set these to match your environment before running (or export NAS_HOST / NAS_USER).
+NAS_HOST="${NAS_HOST:-your-nas-hostname}"
+NAS_USER="${NAS_USER:-your-nas-username}"
 NC_CONTAINER="nextcloud-aio-nextcloud"
 NC_CUSTOM_APPS="/var/www/html/custom_apps"
 APP_ID="deductiblelog"
