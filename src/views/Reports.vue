@@ -153,6 +153,8 @@ import TableIcon               from 'vue-material-design-icons/Table.vue'
 import ChartBarIcon            from 'vue-material-design-icons/ChartBar.vue'
 import { useReportsStore }     from '../stores/reports.js'
 import { useSettingsStore }    from '../stores/settings.js'
+import { useYearsStore }       from '../stores/years.js'
+import { currentYear }         from '../utils/date.js'
 
 const CURRENT_YEAR   = currentYear()
 const yearsStore     = useYearsStore()
