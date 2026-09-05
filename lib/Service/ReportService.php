@@ -4,7 +4,16 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Service;
 
+use OCA\DeductibleLog\AppInfo\Application;
+use OCP\App\IAppManager;
+
 class ReportService {
+
+    /** Schedule A, cash charity contributions (TXF v042 reference number). */
+    private const TXF_REF_CASH = 280;
+
+    /** Schedule A, non-cash charity contributions (TXF v042 reference number). */
+    private const TXF_REF_NONCASH = 485;
 
     public function __construct(
         private CashDonationService    $cashService,
@@ -15,6 +24,7 @@ class ReportService {
         private CharityService         $charityService,
         private FamilyMemberService    $familyService,
         private SettingsService        $settingsService,
+        private IAppManager            $appManager,
     ) {}
 
     // ── Summary ──────────────────────────────────────────────────────────────
@@ -134,45 +144,81 @@ class ReportService {
     // ── TXF ───────────────────────────────────────────────────────────────────
 
     /**
-     * Tax Exchange Format for TurboTax Desktop.
+     * Tax Exchange Format (v042) for TurboTax Desktop.
+     *
      * Scope: Schedule A charitable deductions only (cash + item donations).
      * Mileage / medical / business are entered manually in TurboTax.
+     *
+     * One Record Format 1 detail record per donation, so the charity name and the
+     * date survive the export instead of collapsing into a single lump sum.
+     *
+     * TXF cannot carry Form 8283 detail: date acquired, how acquired, cost basis,
+     * FMV determination method and the donee's address have no fields in the 1991
+     * format. A non-cash total above $500 still has to go through TurboTax's own
+     * non-cash interview, which is what actually generates Form 8283.
      */
     public function txf(string $userId, int $taxYear): string {
-        $cashTotal = (float) $this->cashService->yearTotal($userId, $taxYear);
-        $itemTotal = (float) $this->itemService->yearTotal($userId, $taxYear);
+        $charityMap = $this->buildCharityMap($userId);
 
         $lines   = [];
         $lines[] = 'V042';
-        $lines[] = "A{$taxYear}";
+        $lines[] = 'ADeductibleLog ' . $this->appManager->getAppVersion(Application::APP_ID);
+        $lines[] = 'D ' . (new \DateTimeImmutable())->format('m/d/Y');
         $lines[] = '^';
 
         $copy = 1;
 
-        if ($cashTotal > 0.0) {
-            $amt = number_format($cashTotal, 2, '.', '');
-            $lines[] = 'TD';
-            $lines[] = 'N334';
-            $lines[] = "C{$copy}";
-            $lines[] = 'L334';
-            $lines[] = "\${$amt}";
-            $lines[] = 'P Cash Donations';
-            $lines[] = '^';
-            $copy++;
+        foreach ($this->cashService->findAll($userId, $taxYear) as $d) {
+            $lines = array_merge($lines, $this->txfRecord(
+                self::TXF_REF_CASH,
+                $copy++,
+                $d->getAmount(),
+                $charityMap[$d->getCharityId()] ?? 'Charity',
+                $d->getDate(),
+            ));
         }
 
-        if ($itemTotal > 0.0) {
-            $amt = number_format($itemTotal, 2, '.', '');
-            $lines[] = 'TD';
-            $lines[] = 'N334';
-            $lines[] = "C{$copy}";
-            $lines[] = 'L334';
-            $lines[] = "\${$amt}";
-            $lines[] = 'P Non-Cash Donations';
-            $lines[] = '^';
+        foreach ($this->itemService->findAll($userId, $taxYear) as $d) {
+            $lines = array_merge($lines, $this->txfRecord(
+                self::TXF_REF_NONCASH,
+                $copy++,
+                $d['total_value'],
+                $charityMap[$d['charity_id']] ?? 'Charity',
+                $d['date'],
+            ));
         }
 
         return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * One TXF Record Format 1 detail record, fields in the order the spec
+     * recommends: T, N, C, L, $, X, P.
+     *
+     * @return string[]
+     */
+    private function txfRecord(int $refNum, int $copy, string $amount, string $payee, string $date): array {
+        return [
+            'TD',
+            'N' . $refNum,
+            'C' . $copy,
+            'L1',
+            '$' . number_format((float) $amount, 2, '.', ''),
+            'X' . $this->txfText($this->txfDate($date) . ' - ' . $payee),
+            'P' . $this->txfText($payee),
+            '^',
+        ];
+    }
+
+    /** TXF text fields are single-line; '^' terminates a record so it cannot appear inside one. */
+    private function txfText(string $text): string {
+        $clean = str_replace(['^', "\r", "\n", "\t"], ' ', $text);
+        return trim(preg_replace('/\s+/', ' ', $clean) ?? '');
+    }
+
+    private function txfDate(string $date): string {
+        $parsed = \DateTimeImmutable::createFromFormat('Y-m-d', substr($date, 0, 10));
+        return $parsed ? $parsed->format('m/d/Y') : $date;
     }
 
     // ── HTML ─────────────────────────────────────────────────────────────────
