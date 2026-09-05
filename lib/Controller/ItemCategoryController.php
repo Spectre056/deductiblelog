@@ -17,7 +17,6 @@ class ItemCategoryController extends Controller {
     public function __construct(
         IRequest $request,
         private ItemCategoryMapper $mapper,
-        private string $userId,
     ) {
         parent::__construct(Application::APP_ID, $request);
     }

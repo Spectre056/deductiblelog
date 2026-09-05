@@ -128,9 +128,12 @@ import ChevronRightIcon from 'vue-material-design-icons/ChevronRight.vue'
 import MandoIcon      from '../components/icons/MandoIcon.vue'
 import { useReportsStore }  from '../stores/reports.js'
 import { useSettingsStore } from '../stores/settings.js'
+import { currentYear } from '../utils/date.js'
+import { useYearsStore } from '../stores/years.js'
 
-const CURRENT_YEAR   = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR]
+const CURRENT_YEAR   = currentYear()
+const yearsStore     = useYearsStore()
+const availableYears = computed(() => yearsStore.years)
 
 const store         = useReportsStore()
 const settingsStore = useSettingsStore()
@@ -141,8 +144,10 @@ const householdName = computed(() =>
 )
 
 onMounted(async () => {
+	await yearsStore.ensure()
+	selectedYear.value = yearsStore.defaultYear
 	await Promise.all([
-		store.fetchSummary(CURRENT_YEAR),
+		store.fetchSummary(selectedYear.value),
 		settingsStore.settings && Object.keys(settingsStore.settings).length
 			? Promise.resolve()
 			: settingsStore.fetchSettings(),

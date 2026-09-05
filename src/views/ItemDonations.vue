@@ -181,7 +181,7 @@
 									min="0"
 									step="0.01"
 									class="dl-input-sm dl-input-money"
-									@input="calcLineTotal(line)"
+									@input="onUnitInput(line)"
 								/>
 							</div>
 							<div class="dl-field-group">
@@ -192,9 +192,14 @@
 						<div v-if="line.itemOption?.id" class="dl-fmv-hint">
 							FMV range: {{ formatAmount(line.itemOption.min_value) }} – {{ formatAmount(line.itemOption.max_value) }}
 							({{ line.itemOption.unit }})
+							<template v-if="line.manualValue">
+								· manual value
+								<a href="#" @click.prevent="useFmv(line)">use {{ line.condition }} FMV {{ formatAmount(fmvFor(line.itemOption, line.condition)) }}</a>
+							</template>
 						</div>
 					</div>
 
+					<p v-if="saveError" class="dl-error">{{ saveError }}</p>
 					<div v-if="formLines.length > 0" class="dl-lines-total">
 						<span>Donation Total:</span>
 						<strong>{{ formTotalFormatted }}</strong>
@@ -285,10 +290,12 @@ import GiftIcon      from 'vue-material-design-icons/Gift.vue'
 import PaperclipIcon from 'vue-material-design-icons/Paperclip.vue'
 import { useItemDonationsStore } from '../stores/itemDonations.js'
 import { useCharitiesStore }     from '../stores/charities.js'
+import { todayLocalISO, currentYear, yearOf, formatDate } from '../utils/date.js'
+import { useYearsStore } from '../stores/years.js'
 
-const CURRENT_YEAR   = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR]
-const todayISO       = new Date().toISOString().split('T')[0]
+const CURRENT_YEAR = currentYear()
+const todayISO     = todayLocalISO()
+const yearsStore   = useYearsStore()
 
 const store        = useItemDonationsStore()
 const charityStore = useCharitiesStore()
@@ -297,8 +304,10 @@ const itemCategoriesLoading = ref(false)
 const itemCategoriesError = ref('')
 
 onMounted(async () => {
+	await yearsStore.ensure()
+	selectedYear.value = yearsStore.defaultYear
 	await Promise.all([
-		store.fetchYear(CURRENT_YEAR),
+		store.fetchYear(selectedYear.value),
 		charityStore.charities.length === 0 ? charityStore.fetchAll() : Promise.resolve(),
 		loadItemCategories(),
 	])
@@ -314,12 +323,6 @@ function charityName(id) {
 	return charityStore.charities.find(c => c.id === id)?.name ?? `Charity #${id}`
 }
 
-function formatDate(iso) {
-	if (!iso) return '—'
-	const [y, m, d] = iso.split('-')
-	return `${m}/${d}/${y}`
-}
-
 function formatAmount(val) {
 	return parseFloat(val || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
@@ -331,6 +334,7 @@ const editTarget   = ref(null)
 const deleteTarget = ref(null)
 const saving       = ref(false)
 const deleting     = ref(false)
+const saveError    = ref('')
 
 const emptyForm = () => ({
 	charity: null,
@@ -340,6 +344,7 @@ const emptyForm = () => ({
 })
 
 const form       = reactive(emptyForm())
+const availableYears = computed(() => yearsStore.withYear(form.taxYear))
 const formErrors = reactive({})
 const formLines  = ref([])
 
@@ -350,11 +355,12 @@ const formTotalFormatted = computed(() => {
 
 function newLine() {
 	return {
-		itemOption: null,
-		condition:  'good',
-		quantity:   1,
-		unitValue:  '',
-		totalValue: '0.00',
+		itemOption:  null,
+		condition:   'good',
+		quantity:    1,
+		unitValue:   '',
+		totalValue:  '0.00',
+		manualValue: false,
 	}
 }
 
@@ -367,7 +373,7 @@ function removeLine(idx) {
 }
 
 function syncYearFromDate() {
-	if (form.date) form.taxYear = parseInt(form.date.substring(0, 4), 10)
+	if (form.date) form.taxYear = yearOf(form.date)
 }
 
 async function loadItemCategories() {
@@ -393,18 +399,38 @@ async function loadItemCategories() {
 	}
 }
 
+/** Catalog value for a condition: poor = low end, good = midpoint, excellent = high end. */
+function fmvFor(opt, condition) {
+	if (!opt?.id) return null
+	const min = parseFloat(opt.min_value || 0)
+	const max = parseFloat(opt.max_value || 0)
+	if (condition === 'poor')      return min.toFixed(2)
+	if (condition === 'excellent') return max.toFixed(2)
+	return ((min + max) / 2).toFixed(2)
+}
+
+// Picking a different item is a fresh start; a typed-in value survives
+// condition changes until the user asks for the catalog value again.
 function onItemSelect(line) {
+	line.manualValue = false
+	applyFmv(line)
+}
+
+function onUnitInput(line) {
+	line.manualValue = true
+	calcLineTotal(line)
+}
+
+function useFmv(line) {
+	line.manualValue = false
 	applyFmv(line)
 }
 
 function applyFmv(line) {
-	const opt = line.itemOption
-	if (!opt?.id) return
-	const min = parseFloat(opt.min_value || 0)
-	const max = parseFloat(opt.max_value || 0)
-	if (line.condition === 'poor')           line.unitValue = min.toFixed(2)
-	else if (line.condition === 'excellent') line.unitValue = max.toFixed(2)
-	else                                     line.unitValue = ((min + max) / 2).toFixed(2)
+	if (line.manualValue) return
+	const fmv = fmvFor(line.itemOption, line.condition)
+	if (fmv === null) return
+	line.unitValue = fmv
 	calcLineTotal(line)
 }
 
@@ -430,16 +456,20 @@ function openEdit(donation) {
 		taxYear: donation.tax_year,
 		notes:   donation.notes ?? '',
 	})
-	formLines.value = (donation.lines ?? []).map(l => ({
-		itemOption: l.item_category_id
+	formLines.value = (donation.lines ?? []).map(l => {
+		const itemOption = l.item_category_id
 			? (itemCategoryOptions.value.find(option => option.id === l.item_category_id)
 				?? { id: l.item_category_id, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' })
-			: { id: null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
-		condition:  l.condition,
-		quantity:   l.quantity,
-		unitValue:  l.unit_value,
-		totalValue: l.total_value,
-	}))
+			: { id: null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' }
+		return {
+			itemOption,
+			condition:   l.condition,
+			quantity:    l.quantity,
+			unitValue:   l.unit_value,
+			totalValue:  l.total_value,
+			manualValue: fmvFor(itemOption, l.condition) !== parseFloat(l.unit_value).toFixed(2),
+		}
+	})
 	editTarget.value = donation
 	showDialog.value = true
 	loadReceipts(donation.id)
@@ -466,6 +496,7 @@ async function save() {
 	if (Object.keys(formErrors).length) return
 
 	saving.value = true
+	saveError.value = ''
 	try {
 		const payload = {
 			charity_id: form.charity.id,
@@ -489,11 +520,13 @@ async function save() {
 			// Stay open in edit mode so user can attach receipts
 			editTarget.value = saved
 			formLines.value  = (saved.lines ?? []).map(l => ({
-				itemOption: { id: l.item_category_id || null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
-				condition:  l.condition,
-				quantity:   l.quantity,
-				unitValue:  l.unit_value,
-				totalValue: l.total_value,
+				itemOption:  itemCategoryOptions.value.find(option => option.id === l.item_category_id)
+					?? { id: l.item_category_id || null, label: l.description, min_value: '0.00', max_value: '0.00', unit: 'each' },
+				condition:   l.condition,
+				quantity:    l.quantity,
+				unitValue:   l.unit_value,
+				totalValue:  l.total_value,
+				manualValue: true,
 			}))
 			return
 		}

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { useYearsStore } from './years.js'
 
 export const useMileageStore = defineStore('mileage', () => {
 	const logs        = ref([])
@@ -60,6 +61,7 @@ export const useMileageStore = defineStore('mileage', () => {
 			generateUrl('/apps/deductiblelog/api/mileage'),
 			payload,
 		)
+		useYearsStore().include(data.data.tax_year)
 		if (Number(data.data.tax_year) === Number(activeYear.value)) {
 			await fetchYear(activeYear.value)
 		}
@@ -71,6 +73,7 @@ export const useMileageStore = defineStore('mileage', () => {
 			generateUrl(`/apps/deductiblelog/api/mileage/${id}`),
 			payload,
 		)
+		useYearsStore().include(data.data.tax_year)
 		await fetchYear(activeYear.value)
 		return data.data
 	}

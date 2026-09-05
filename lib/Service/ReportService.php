@@ -35,12 +35,9 @@ class ReportService {
         $mileageTotals = $this->mileageService->yearTotals($userId, $taxYear);
         $medicalTotal  = $this->medicalService->yearTotal($userId, $taxYear);
         $businessTotal = $this->businessService->yearTotal($userId, $taxYear);
+        $byPurpose     = $mileageTotals['by_purpose'];
 
-        $charitableTotal = number_format((float)$cashTotal + (float)$itemTotal, 2, '.', '');
-        $grandTotal      = number_format(
-            (float)$charitableTotal + (float)$mileageTotals['deduction'] + (float)$medicalTotal + (float)$businessTotal,
-            2, '.', '',
-        );
+        $charitableTotal = Money::sum($cashTotal, $itemTotal);
 
         return [
             'tax_year'          => $taxYear,
@@ -49,9 +46,16 @@ class ReportService {
             'charitable_total'  => $charitableTotal,
             'mileage_deduction' => $mileageTotals['deduction'],
             'mileage_miles'     => $mileageTotals['miles'],
+            'mileage_by_purpose' => $byPurpose,
             'medical_expenses'  => $medicalTotal,
             'business_expenses' => $businessTotal,
-            'grand_total'       => $grandTotal,
+            // Return-line views. Charitable miles are a Schedule A cash gift,
+            // medical miles join medical expenses, business miles belong on Schedule C.
+            'schedule_a_cash'       => Money::sum($cashTotal, $byPurpose['charitable']['deduction']),
+            'schedule_a_noncash'    => $itemTotal,
+            'medical_with_mileage'  => Money::sum($medicalTotal, $byPurpose['medical']['deduction']),
+            'schedule_c'            => Money::sum($businessTotal, $byPurpose['business']['deduction']),
+            'grand_total'       => Money::sum($charitableTotal, $mileageTotals['deduction'], $medicalTotal, $businessTotal),
         ];
     }
 
@@ -138,6 +142,12 @@ class ReportService {
             ];
         }
 
+        foreach ($this->mileageService->byPurpose($userId, $taxYear) as $purpose => $sums) {
+            if ((float) $sums['miles'] > 0) {
+                $rows[] = ['Mileage Subtotal', $taxYear, '', '', '', ucfirst($purpose), '', $sums['deduction'], $sums['miles'], ''];
+            }
+        }
+
         return $this->buildCsv($rows);
     }
 
@@ -173,7 +183,7 @@ class ReportService {
                 self::TXF_REF_CASH,
                 $copy++,
                 $d->getAmount(),
-                $charityMap[$d->getCharityId()] ?? 'Charity',
+                $charityMap[$d->getCharityId()] ?? 'Unknown charity (deleted)',
                 $d->getDate(),
             ));
         }
@@ -183,7 +193,7 @@ class ReportService {
                 self::TXF_REF_NONCASH,
                 $copy++,
                 $d['total_value'],
-                $charityMap[$d['charity_id']] ?? 'Charity',
+                $charityMap[$d['charity_id']] ?? 'Unknown charity (deleted)',
                 $d['date'],
             ));
         }
@@ -253,6 +263,14 @@ class ReportService {
         $html .= $this->summaryCard('Medical Expenses',  $fmt($summary['medical_expenses']));
         $html .= $this->summaryCard('Business Expenses', $fmt($summary['business_expenses']));
         $html .= $this->summaryCard('Charitable Total',  $fmt($summary['charitable_total']), 'accent');
+        $html .= "</div>\n";
+
+        $bp = $summary['mileage_by_purpose'];
+        $html .= "<h2>By Return Line</h2>\n<div class=\"summary-grid\">\n";
+        $html .= $this->summaryCard('Schedule A: cash gifts incl. ' . number_format((float) $bp['charitable']['miles'], 1) . ' charitable mi', $fmt($summary['schedule_a_cash']), 'accent');
+        $html .= $this->summaryCard('Schedule A: non-cash gifts', $fmt($summary['schedule_a_noncash']), 'accent');
+        $html .= $this->summaryCard('Medical incl. ' . number_format((float) $bp['medical']['miles'], 1) . ' medical mi (before AGI floor)', $fmt($summary['medical_with_mileage']));
+        $html .= $this->summaryCard('Schedule C: expenses incl. ' . number_format((float) $bp['business']['miles'], 1) . ' business mi', $fmt($summary['schedule_c']));
         $html .= "</div>\n";
         $html .= '<div class="grand-total">Grand Total: ' . $fmt($summary['grand_total']) . "</div>\n";
 
@@ -332,9 +350,14 @@ class ReportService {
     private function buildCsv(array $rows): string {
         $out = '';
         foreach ($rows as $row) {
-            $out .= implode(',', array_map(fn($cell) => '"' . str_replace('"', '""', (string) $cell) . '"', $row)) . "\r\n";
+            $out .= implode(',', array_map(fn($cell) => '"' . str_replace('"', '""', self::csvSafe((string) $cell)) . '"', $row)) . "\r\n";
         }
         return $out;
+    }
+
+    /** Spreadsheets execute cells starting with = + - @ or a tab/CR as formulas; a leading apostrophe defuses that. */
+    public static function csvSafe(string $cell): string {
+        return $cell !== '' && strpbrk($cell[0], "=+-@\t\r") !== false ? "'" . $cell : $cell;
     }
 
     private function summaryCard(string $label, string $value, string $extra = ''): string {

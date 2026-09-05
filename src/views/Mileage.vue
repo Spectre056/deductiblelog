@@ -218,17 +218,21 @@ import DeleteIcon from 'vue-material-design-icons/Delete.vue'
 import CarIcon    from 'vue-material-design-icons/Car.vue'
 import { useMileageStore }       from '../stores/mileage.js'
 import { useFamilyMembersStore } from '../stores/familyMembers.js'
+import { todayLocalISO, currentYear, yearOf, formatDate } from '../utils/date.js'
+import { useYearsStore } from '../stores/years.js'
 
-const CURRENT_YEAR   = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR]
-const todayISO       = new Date().toISOString().split('T')[0]
+const CURRENT_YEAR = currentYear()
+const todayISO     = todayLocalISO()
+const yearsStore   = useYearsStore()
 
 const store       = useMileageStore()
 const memberStore = useFamilyMembersStore()
 
 onMounted(async () => {
+	await yearsStore.ensure()
+	selectedYear.value = yearsStore.defaultYear
 	await Promise.all([
-		store.fetchYear(CURRENT_YEAR),
+		store.fetchYear(selectedYear.value),
 		store.fetchRates(),
 		memberStore.members.length === 0 ? memberStore.fetchAll() : Promise.resolve(),
 	])
@@ -247,12 +251,6 @@ function memberName(id) {
 
 function purposeLabel(type) {
 	return { charitable: 'Charitable', medical: 'Medical', business: 'Business' }[type] ?? type
-}
-
-function formatDate(iso) {
-	if (!iso) return '—'
-	const [y, m, d] = iso.split('-')
-	return `${m}/${d}/${y}`
 }
 
 function formatAmount(val) {
@@ -279,6 +277,7 @@ const emptyForm = () => ({
 })
 
 const form       = reactive(emptyForm())
+const availableYears = computed(() => yearsStore.withYear(form.taxYear))
 const formErrors = reactive({})
 
 const deductionFormatted = computed(() => {
@@ -289,13 +288,13 @@ const deductionFormatted = computed(() => {
 
 const rateHint = computed(() => {
 	const r = store.taxRates[form.taxYear]
-	if (!r) return null
+	if (!r) return `No IRS rate on file for ${form.taxYear}. Enter the rate manually, or add ${form.taxYear} under Settings.`
 	return `${form.taxYear} IRS rates — Charitable: ${r.charitable}¢ · Medical: ${r.medical}¢ · Business: ${r.business}¢`
 })
 
 function syncYearFromDate() {
 	if (form.date) {
-		form.taxYear = parseInt(form.date.substring(0, 4), 10)
+		form.taxYear = yearOf(form.date)
 		syncRate()
 	}
 }

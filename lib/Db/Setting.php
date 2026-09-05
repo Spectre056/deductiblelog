@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method string getUserId()
  * @method void setUserId(string $userId)
@@ -14,7 +12,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getValue()
  * @method void setValue(?string $value)
  */
-class Setting extends Entity {
+class Setting extends BaseEntity {
     protected string $userId = '';
     protected string $key    = '';
     protected ?string $value = null;

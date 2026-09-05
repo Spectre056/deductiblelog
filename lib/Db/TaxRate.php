@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method int getTaxYear()
  * @method void setTaxYear(int $taxYear)
@@ -20,7 +18,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string getSource()
  * @method void setSource(string $source)
  */
-class TaxRate extends Entity {
+class TaxRate extends BaseEntity {
     protected int $taxYear = 0;
     protected string $mileageCharitableCents = '14.0';
     protected string $mileageMedicalCents = '21.0';

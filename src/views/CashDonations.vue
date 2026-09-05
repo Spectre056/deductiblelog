@@ -144,6 +144,7 @@
 					label="Notes"
 					placeholder="Optional notes"
 				/>
+				<p v-if="saveError" class="dl-error">{{ saveError }}</p>
 			</div>
 			<template #actions>
 				<NcButton @click="showDialog = false">Cancel</NcButton>
@@ -193,19 +194,23 @@ import DeleteIcon      from 'vue-material-design-icons/Delete.vue'
 import CurrencyUsdIcon from 'vue-material-design-icons/CurrencyUsd.vue'
 import { useCashDonationsStore } from '../stores/cashDonations.js'
 import { useCharitiesStore }     from '../stores/charities.js'
+import { todayLocalISO, currentYear, yearOf, formatDate } from '../utils/date.js'
+import { useYearsStore } from '../stores/years.js'
 
 const PAYMENT_METHODS = ['Cash', 'Check', 'Credit Card', 'Bank Transfer', 'Payroll Deduction', 'Other']
 
-const CURRENT_YEAR  = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR]
-const todayISO       = new Date().toISOString().split('T')[0]
+const CURRENT_YEAR = currentYear()
+const todayISO     = todayLocalISO()
+const yearsStore   = useYearsStore()
 
 const store        = useCashDonationsStore()
 const charityStore = useCharitiesStore()
 
 onMounted(async () => {
+	await yearsStore.ensure()
+	selectedYear.value = yearsStore.defaultYear
 	await Promise.all([
-		store.fetchYear(CURRENT_YEAR),
+		store.fetchYear(selectedYear.value),
 		charityStore.charities.length === 0 ? charityStore.fetchAll() : Promise.resolve(),
 	])
 })
@@ -220,12 +225,6 @@ function charityName(id) {
 	return charityStore.charities.find(c => c.id === id)?.name ?? `Charity #${id}`
 }
 
-function formatDate(iso) {
-	if (!iso) return '—'
-	const [y, m, d] = iso.split('-')
-	return `${m}/${d}/${y}`
-}
-
 function formatAmount(val) {
 	return parseFloat(val || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
@@ -237,6 +236,7 @@ const editTarget   = ref(null)
 const deleteTarget = ref(null)
 const saving       = ref(false)
 const deleting     = ref(false)
+const saveError    = ref('')
 
 const emptyForm = () => ({
 	charity:       null,
@@ -248,10 +248,11 @@ const emptyForm = () => ({
 })
 
 const form       = reactive(emptyForm())
+const availableYears = computed(() => yearsStore.withYear(form.taxYear))
 const formErrors = reactive({})
 
 function syncYearFromDate() {
-	if (form.date) form.taxYear = parseInt(form.date.substring(0, 4), 10)
+	if (form.date) form.taxYear = yearOf(form.date)
 }
 
 function openAdd() {
@@ -288,6 +289,7 @@ async function save() {
 	if (Object.keys(formErrors).length) return
 
 	saving.value = true
+	saveError.value = ''
 	try {
 		const payload = {
 			charity_id:     form.charity.id,
@@ -304,6 +306,8 @@ async function save() {
 			await store.create(payload)
 		}
 		showDialog.value = false
+	} catch (error) {
+		saveError.value = error?.response?.data?.message ?? 'Unable to save.'
 	} finally {
 		saving.value = false
 	}

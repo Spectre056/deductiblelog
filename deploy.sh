@@ -30,6 +30,12 @@ tar -czf - \
   --exclude='vite.config.js' \
   --exclude='composer.json' \
   --exclude='src' \
+  --exclude='vendor' \
+  --exclude='tests' \
+  --exclude='scripts' \
+  --exclude='phpunit.xml' \
+  --exclude='composer.lock' \
+  --exclude='.phpunit*' \
   -C "${SCRIPT_DIR}" \
   . \
   | ssh "${NAS_USER}@${NAS_HOST}" "tar -xzf - -C '${STAGE_DIR}'"
@@ -40,10 +46,13 @@ echo "==> Copying into container ${NC_CONTAINER}…"
 ssh "${NAS_USER}@${NAS_HOST}" \
   "docker cp '${STAGE_DIR}/.' '${NC_CONTAINER}:${NC_CUSTOM_APPS}/${APP_ID}/'"
 
-# ── Enable app (idempotent; runs migrations on first install) ─────────────────
-echo "==> Enabling app (runs DB migrations if needed)…"
+# ── Enable + migrate ──────────────────────────────────────────────────────────
+# app:enable only runs migrations on first install; an already-enabled app needs
+# an explicit upgrade for new migration steps and repair steps to run.
+echo "==> Enabling app and running migrations…"
 ssh "${NAS_USER}@${NAS_HOST}" \
-  "docker exec -u www-data '${NC_CONTAINER}' php occ app:enable ${APP_ID}"
+  "docker exec -u www-data '${NC_CONTAINER}' php occ app:enable ${APP_ID} && \
+   docker exec -u www-data '${NC_CONTAINER}' php occ upgrade"
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 echo "==> Cleaning up…"

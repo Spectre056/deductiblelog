@@ -10,6 +10,8 @@ use OCP\IDBConnection;
 
 class BusinessExpenseMapper extends QBMapper {
 
+    use ScopedQueries;
+
     public function __construct(IDBConnection $db) {
         parent::__construct($db, 'deductiblelog_business_expenses', BusinessExpense::class);
     }

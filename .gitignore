@@ -6,3 +6,5 @@ vendor/
 .DS_Store
 dist/
 CLAUDE.md
+.phpunit.result.cache
+.phpunit.cache/

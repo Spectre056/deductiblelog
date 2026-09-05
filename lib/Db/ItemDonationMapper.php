@@ -10,6 +10,8 @@ use OCP\IDBConnection;
 
 class ItemDonationMapper extends QBMapper {
 
+    use ScopedQueries;
+
     public function __construct(IDBConnection $db) {
         parent::__construct($db, 'deductiblelog_item_donations', ItemDonation::class);
     }

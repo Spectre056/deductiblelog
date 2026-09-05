@@ -6,10 +6,17 @@ namespace OCA\DeductibleLog\Service;
 
 use OCA\DeductibleLog\Db\CashDonation;
 use OCA\DeductibleLog\Db\CashDonationMapper;
+use OCA\DeductibleLog\Db\CharityMapper;
+use OCA\DeductibleLog\Db\ReceiptMapper;
+use OCP\AppFramework\Db\DoesNotExistException;
 
 class CashDonationService {
 
-    public function __construct(private CashDonationMapper $mapper) {}
+    public function __construct(
+        private CashDonationMapper $mapper,
+        private CharityMapper $charityMapper,
+        private ReceiptMapper $receiptMapper,
+    ) {}
 
     /** @return CashDonation[] */
     public function findAll(string $userId, int $taxYear): array {
@@ -21,38 +28,52 @@ class CashDonationService {
     }
 
     public function create(string $userId, array $data): CashDonation {
-        $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
-
+        $now      = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
         $donation = new CashDonation();
         $donation->setUserId($userId);
-        $donation->setCharityId((int) $data['charity_id']);
-        $donation->setTaxYear((int) $data['tax_year']);
-        $donation->setDate($data['date']);
-        $donation->setAmount($data['amount']);
-        $donation->setPaymentMethod($data['payment_method'] ?? null);
-        $donation->setNotes($data['notes'] ?? null);
         $donation->setCreatedAt($now);
+        $this->apply($donation, $userId, $data);
         $donation->setUpdatedAt($now);
-
         return $this->mapper->insert($donation);
     }
 
     public function update(int $id, string $userId, array $data): CashDonation {
         $donation = $this->mapper->findById($id, $userId);
-
-        if (isset($data['charity_id']))    { $donation->setCharityId((int) $data['charity_id']); }
-        if (isset($data['tax_year']))      { $donation->setTaxYear((int) $data['tax_year']); }
-        if (isset($data['date']))          { $donation->setDate($data['date']); }
-        if (isset($data['amount']))        { $donation->setAmount($data['amount']); }
-        if (array_key_exists('payment_method', $data)) { $donation->setPaymentMethod($data['payment_method']); }
-        if (array_key_exists('notes', $data))          { $donation->setNotes($data['notes']); }
+        $merged   = Merge::forUpdate($donation->jsonSerialize(), $data);
+        $this->apply($donation, $userId, $merged);
         $donation->setUpdatedAt((new \DateTimeImmutable())->format('Y-m-d H:i:s'));
-
         return $this->mapper->update($donation);
     }
 
     public function delete(int $id, string $userId): void {
         $donation = $this->mapper->findById($id, $userId);
+        $this->receiptMapper->deleteByEntity('cash_donation', $donation->getId(), $userId);
         $this->mapper->delete($donation);
+    }
+
+    private function apply(CashDonation $donation, string $userId, array $data): void {
+        $v         = new Validator();
+        $charityId = $v->positiveInt($data['charity_id'] ?? null, 'charity_id');
+        $date      = $v->date($data['date'] ?? null);
+        $taxYear   = $v->taxYear($data['tax_year'] ?? null, $date);
+        $amount    = $v->amount($data['amount'] ?? null);
+        $payment   = $v->optionalString($data['payment_method'] ?? null, 'payment_method', 32);
+        $notes     = $v->optionalString($data['notes'] ?? null, 'notes', 10000);
+
+        if ($charityId !== null) {
+            try {
+                $this->charityMapper->findById($charityId, $userId);
+            } catch (DoesNotExistException) {
+                $v->fail('charity_id', 'Unknown charity');
+            }
+        }
+        $v->throwIfInvalid();
+
+        $donation->setCharityId($charityId);
+        $donation->setTaxYear($taxYear);
+        $donation->setDate($date);
+        $donation->setAmount($amount);
+        $donation->setPaymentMethod($payment);
+        $donation->setNotes($notes);
     }
 }

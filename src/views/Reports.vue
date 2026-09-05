@@ -71,6 +71,29 @@
 				</tfoot>
 			</table>
 
+			<h3>By return line</h3>
+			<p class="dl-mileage-hint">Mileage folded into the line it belongs on. Medical is before the AGI floor.</p>
+			<table class="dl-table dl-summary-table">
+				<tbody>
+					<tr>
+						<td>Schedule A · cash gifts <span class="dl-mileage-hint">incl. {{ fmtMiles(store.summary.mileage_by_purpose?.charitable?.miles) }} charitable mi</span></td>
+						<td class="dl-col-amount">{{ fmt(store.summary.schedule_a_cash) }}</td>
+					</tr>
+					<tr>
+						<td>Schedule A · non-cash gifts</td>
+						<td class="dl-col-amount">{{ fmt(store.summary.schedule_a_noncash) }}</td>
+					</tr>
+					<tr>
+						<td>Medical <span class="dl-mileage-hint">incl. {{ fmtMiles(store.summary.mileage_by_purpose?.medical?.miles) }} medical mi</span></td>
+						<td class="dl-col-amount">{{ fmt(store.summary.medical_with_mileage) }}</td>
+					</tr>
+					<tr>
+						<td>Schedule C · business <span class="dl-mileage-hint">incl. {{ fmtMiles(store.summary.mileage_by_purpose?.business?.miles) }} business mi</span></td>
+						<td class="dl-col-amount">{{ fmt(store.summary.schedule_c) }}</td>
+					</tr>
+				</tbody>
+			</table>
+
 			<!-- Export actions -->
 			<div class="dl-export-section">
 				<h3>Export</h3>
@@ -124,8 +147,9 @@ import ChartBarIcon            from 'vue-material-design-icons/ChartBar.vue'
 import { useReportsStore }     from '../stores/reports.js'
 import { useSettingsStore }    from '../stores/settings.js'
 
-const CURRENT_YEAR   = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR]
+const CURRENT_YEAR   = currentYear()
+const yearsStore     = useYearsStore()
+const availableYears = computed(() => yearsStore.years)
 
 const store         = useReportsStore()
 const settingsStore = useSettingsStore()
@@ -138,7 +162,11 @@ function doExport(fn) {
 	setTimeout(() => { exportFlash.value = false }, 3000)
 }
 
-onMounted(() => store.fetchSummary(CURRENT_YEAR))
+onMounted(async () => {
+	await yearsStore.ensure()
+	selectedYear.value = yearsStore.defaultYear
+	await store.fetchSummary(selectedYear.value)
+})
 
 const grandTotal = computed(() => fmt(store.summary?.grand_total ?? '0'))
 

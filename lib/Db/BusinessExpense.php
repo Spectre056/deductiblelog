@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method string getUserId()
  * @method void setUserId(string $userId)
@@ -28,7 +26,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string getUpdatedAt()
  * @method void setUpdatedAt(string $updatedAt)
  */
-class BusinessExpense extends Entity {
+class BusinessExpense extends BaseEntity {
     protected string $userId = '';
     protected ?int $familyMemberId = null;
     protected int $taxYear = 0;

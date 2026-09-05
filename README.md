@@ -25,7 +25,7 @@ It was inspired by Intuit's discontinued ItsDeductible and is designed for peopl
 
 ## Current Status
 
-`v0.1.1`
+`v0.2.0`
 
 The app is feature-complete for its initial release and currently includes:
 
@@ -74,7 +74,18 @@ Install dependencies:
 
 ```bash
 npm install
+composer install   # dev only: phpunit + Nextcloud OCP stubs
 ```
+
+Run the PHP unit tests (no Nextcloud install or database needed):
+
+```bash
+vendor/bin/phpunit
+```
+
+`scripts/integrity-check.sql` contains read-only PostgreSQL queries that flag
+header/line total mismatches, orphaned rows, and records whose tax year
+disagrees with their date.
 
 Run a production build:
 

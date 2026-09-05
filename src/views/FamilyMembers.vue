@@ -86,6 +86,7 @@
 			@update:open="v => { if (!v) deleteTarget = null }"
 		>
 			<p>Remove <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.</p>
+			<p v-if="deleteError" class="dl-error">{{ deleteError }}</p>
 			<template #actions>
 				<NcButton @click="deleteTarget = null">Cancel</NcButton>
 				<NcButton type="error" :disabled="deleting" @click="doDelete">
@@ -131,6 +132,7 @@ onMounted(() => store.fetchAll())
 const showDialog   = ref(false)
 const editTarget   = ref(null)
 const deleteTarget = ref(null)
+const deleteError  = ref('')
 const saving       = ref(false)
 const deleting     = ref(false)
 
@@ -185,14 +187,18 @@ async function save() {
 }
 
 function confirmDelete(member) {
+	deleteError.value = ''
 	deleteTarget.value = member
 }
 
 async function doDelete() {
 	deleting.value = true
+	deleteError.value = ''
 	try {
 		await store.remove(deleteTarget.value.id)
 		deleteTarget.value = null
+	} catch (e) {
+		deleteError.value = e?.response?.data?.message ?? 'Delete failed'
 	} finally {
 		deleting.value = false
 	}

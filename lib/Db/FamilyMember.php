@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method string getUserId()
  * @method void setUserId(string $userId)
@@ -16,7 +14,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  */
-class FamilyMember extends Entity {
+class FamilyMember extends BaseEntity {
     protected string $userId = '';
     protected string $name = '';
     protected string $relationship = '';

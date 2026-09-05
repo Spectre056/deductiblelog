@@ -10,7 +10,7 @@ medical expenses, and business expenses — all in one place. Generates
 accountant-ready reports and CSV/TXF exports. Inspired by Intuit's
 discontinued ItsDeductible.
     ]]></description>
-    <version>0.1.4</version>
+    <version>0.2.0</version>
     <licence>agpl</licence>
     <author>Spectre056</author>
     <namespace>DeductibleLog</namespace>
@@ -21,6 +21,11 @@ discontinued ItsDeductible.
         <php min-version="8.2" max-version="8.5"/>
         <nextcloud min-version="33" max-version="34"/>
     </dependencies>
+    <repair-steps>
+        <post-migration>
+            <step>OCA\DeductibleLog\Migration\SeedRepairStep</step>
+        </post-migration>
+    </repair-steps>
     <navigations>
         <navigation>
             <name>DeductibleLog</name>

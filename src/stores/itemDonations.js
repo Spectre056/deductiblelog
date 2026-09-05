@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { useYearsStore } from './years.js'
 
 export const useItemDonationsStore = defineStore('itemDonations', () => {
 	const donations  = ref([])
@@ -37,9 +38,9 @@ export const useItemDonationsStore = defineStore('itemDonations', () => {
 			generateUrl('/apps/deductiblelog/api/item-donations'),
 			payload,
 		)
-		if (data.data.tax_year === activeYear.value) {
-			donations.value.unshift(data.data)
-			yearTotal.value = (parseFloat(yearTotal.value) + parseFloat(data.data.total_value)).toFixed(2)
+		useYearsStore().include(data.data.tax_year)
+		if (Number(data.data.tax_year) === Number(activeYear.value)) {
+			await fetchYear(activeYear.value)
 		}
 		return data.data
 	}
@@ -49,6 +50,7 @@ export const useItemDonationsStore = defineStore('itemDonations', () => {
 			generateUrl(`/apps/deductiblelog/api/item-donations/${id}`),
 			payload,
 		)
+		useYearsStore().include(data.data.tax_year)
 		await fetchYear(activeYear.value)
 		return data.data
 	}

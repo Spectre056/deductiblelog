@@ -152,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {
 	NcButton,
 	NcLoadingIcon,
@@ -161,9 +161,12 @@ import {
 import RefreshIcon         from 'vue-material-design-icons/Refresh.vue'
 import { useSettingsStore } from '../stores/settings.js'
 import { useMileageStore }  from '../stores/mileage.js'
+import { useYearsStore }    from '../stores/years.js'
+import { currentYear, formatDateTime } from '../utils/date.js'
 
-const CURRENT_YEAR   = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1]
+const CURRENT_YEAR   = currentYear()
+const yearsStore     = useYearsStore()
+const availableYears = computed(() => yearsStore.withYear(CURRENT_YEAR + 1))
 
 const store     = useSettingsStore()
 const rateStore = useMileageStore()
@@ -180,6 +183,7 @@ const form = reactive({
 
 onMounted(async () => {
 	await Promise.all([
+		yearsStore.ensure(),
 		store.fetchSettings(),
 		rateStore.taxRates && Object.keys(rateStore.taxRates).length
 			? Promise.resolve()
@@ -201,6 +205,8 @@ async function save() {
 			default_tax_year: form.defaultTaxYear,
 			mando_theme:      form.mandoTheme ? '1' : '0',
 		})
+		yearsStore.invalidate()
+		await yearsStore.ensure()
 		saveSuccess.value = true
 		setTimeout(() => { saveSuccess.value = false }, 3000)
 	} catch (e) {
@@ -220,10 +226,7 @@ async function applyUpdates() {
 	await rateStore.fetchRates()
 }
 
-function formatDate(iso) {
-	if (!iso) return ''
-	return new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
-}
+const formatDate = formatDateTime
 </script>
 
 <style scoped>

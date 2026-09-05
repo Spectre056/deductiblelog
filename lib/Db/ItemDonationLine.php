@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method int getDonationId()
  * @method void setDonationId(int $donationId)
@@ -21,8 +19,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setUnitValue(string $unitValue)
  * @method string getTotalValue()
  * @method void setTotalValue(string $totalValue)
+ * @method string|null getFmvSource()
+ * @method void setFmvSource(?string $fmvSource)
  */
-class ItemDonationLine extends Entity {
+class ItemDonationLine extends BaseEntity {
     protected int $donationId = 0;
     protected int $itemCategoryId = 0;
     protected string $description = '';
@@ -30,6 +30,7 @@ class ItemDonationLine extends Entity {
     protected string $condition = '';
     protected string $unitValue = '0.00';
     protected string $totalValue = '0.00';
+    protected ?string $fmvSource = null;
 
     public function __construct() {
         $this->addType('donationId', 'integer');
@@ -47,6 +48,7 @@ class ItemDonationLine extends Entity {
             'condition'        => $this->condition,
             'unit_value'       => $this->unitValue,
             'total_value'      => $this->totalValue,
+            'fmv_source'       => $this->fmvSource,
         ];
     }
 }

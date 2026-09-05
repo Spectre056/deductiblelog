@@ -10,6 +10,8 @@ use OCP\IDBConnection;
 
 class MileageLogMapper extends QBMapper {
 
+    use ScopedQueries;
+
     public function __construct(IDBConnection $db) {
         parent::__construct($db, 'deductiblelog_mileage_logs', MileageLog::class);
     }
@@ -56,5 +58,30 @@ class MileageLogMapper extends QBMapper {
         $sum    = $result->fetchOne();
         $result->closeCursor();
         return $sum ?: '0.0';
+    }
+
+    /**
+     * Deduction and miles per purpose for a year.
+     * @return array<string, array{deduction: string, miles: string}> keyed by purpose_type
+     */
+    public function sumByYearAndPurpose(string $userId, int $taxYear): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('purpose_type')
+           ->selectAlias($qb->func()->sum('deduction_amount'), 'deduction')
+           ->selectAlias($qb->func()->sum('miles'), 'miles')
+           ->from($this->getTableName())
+           ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+           ->andWhere($qb->expr()->eq('tax_year', $qb->createNamedParameter($taxYear, IQueryBuilder::PARAM_INT)))
+           ->groupBy('purpose_type');
+        $result = $qb->executeQuery();
+        $rows   = [];
+        while ($row = $result->fetch()) {
+            $rows[(string) $row['purpose_type']] = [
+                'deduction' => (string) ($row['deduction'] ?? '0.00'),
+                'miles'     => (string) ($row['miles'] ?? '0.0'),
+            ];
+        }
+        $result->closeCursor();
+        return $rows;
     }
 }

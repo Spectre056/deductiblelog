@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\AppInfo;
 
+use OCA\DeductibleLog\Middleware\ApiErrorMiddleware;
+use OCA\DeductibleLog\Middleware\CsrfMiddleware;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -17,10 +19,10 @@ class Application extends App implements IBootstrap {
     }
 
     public function register(IRegistrationContext $context): void {
-        // Services and middleware registered here in future phases
+        $context->registerMiddleware(CsrfMiddleware::class);
+        $context->registerMiddleware(ApiErrorMiddleware::class);
     }
 
     public function boot(IBootContext $context): void {
-        // Boot logic here in future phases
     }
 }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method string getUserId()
  * @method void setUserId(string $userId)
@@ -26,7 +24,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string getUpdatedAt()
  * @method void setUpdatedAt(string $updatedAt)
  */
-class CashDonation extends Entity {
+class CashDonation extends BaseEntity {
     protected string $userId = '';
     protected int $charityId = 0;
     protected int $taxYear = 0;

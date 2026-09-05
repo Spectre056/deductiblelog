@@ -146,6 +146,7 @@
 
 				<!-- Notes -->
 				<NcTextField v-model="form.notes" label="Notes" placeholder="Optional notes" />
+				<p v-if="saveError" class="dl-error">{{ saveError }}</p>
 			</div>
 
 			<template #actions>
@@ -195,22 +196,26 @@ import DeleteIcon    from 'vue-material-design-icons/Delete.vue'
 import BriefcaseIcon from 'vue-material-design-icons/Briefcase.vue'
 import { useBusinessExpensesStore } from '../stores/businessExpenses.js'
 import { useFamilyMembersStore }    from '../stores/familyMembers.js'
+import { todayLocalISO, currentYear, yearOf, formatDate } from '../utils/date.js'
+import { useYearsStore } from '../stores/years.js'
 
 const BUSINESS_CATEGORIES = [
 	'Supplies', 'Travel', 'Meals', 'Software', 'Mileage',
 	'Equipment', 'Marketing', 'Professional Services', 'Education', 'Other',
 ]
 
-const CURRENT_YEAR   = new Date().getFullYear()
-const availableYears = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR]
-const todayISO       = new Date().toISOString().split('T')[0]
+const CURRENT_YEAR = currentYear()
+const todayISO     = todayLocalISO()
+const yearsStore   = useYearsStore()
 
 const store       = useBusinessExpensesStore()
 const memberStore = useFamilyMembersStore()
 
 onMounted(async () => {
+	await yearsStore.ensure()
+	selectedYear.value = yearsStore.defaultYear
 	await Promise.all([
-		store.fetchYear(CURRENT_YEAR),
+		store.fetchYear(selectedYear.value),
 		memberStore.members.length === 0 ? memberStore.fetchAll() : Promise.resolve(),
 	])
 })
@@ -226,12 +231,6 @@ function memberName(id) {
 	return memberStore.members.find(m => m.id === id)?.name ?? `#${id}`
 }
 
-function formatDate(iso) {
-	if (!iso) return '—'
-	const [y, m, d] = iso.split('-')
-	return `${m}/${d}/${y}`
-}
-
 function formatAmount(val) {
 	return parseFloat(val || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
@@ -243,6 +242,7 @@ const editTarget   = ref(null)
 const deleteTarget = ref(null)
 const saving       = ref(false)
 const deleting     = ref(false)
+const saveError    = ref('')
 
 const emptyForm = () => ({
 	member:      null,
@@ -255,10 +255,11 @@ const emptyForm = () => ({
 })
 
 const form       = reactive(emptyForm())
+const availableYears = computed(() => yearsStore.withYear(form.taxYear))
 const formErrors = reactive({})
 
 function syncYearFromDate() {
-	if (form.date) form.taxYear = parseInt(form.date.substring(0, 4), 10)
+	if (form.date) form.taxYear = yearOf(form.date)
 }
 
 function openAdd() {
@@ -296,6 +297,7 @@ async function save() {
 	if (Object.keys(formErrors).length) return
 
 	saving.value = true
+	saveError.value = ''
 	try {
 		const payload = {
 			family_member_id: form.member?.id ?? null,
@@ -313,6 +315,8 @@ async function save() {
 			await store.create(payload)
 		}
 		showDialog.value = false
+	} catch (error) {
+		saveError.value = error?.response?.data?.message ?? 'Unable to save.'
 	} finally {
 		saving.value = false
 	}

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
-use OCP\AppFramework\Db\Entity;
-
 /**
  * @method string getCategory()
  * @method void setCategory(string $category)
@@ -20,7 +18,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string getSource()
  * @method void setSource(string $source)
  */
-class ItemCategory extends Entity {
+class ItemCategory extends BaseEntity {
     protected string $category = '';
     protected string $name = '';
     protected string $minValue = '0.00';
