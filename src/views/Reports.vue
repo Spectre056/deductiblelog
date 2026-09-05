@@ -71,7 +71,14 @@
 				</tfoot>
 			</table>
 
-			<h3>By return line</h3>
+			<NcNoteCard v-if="store.summary.acknowledgment_missing" type="warning">
+			{{ store.summary.acknowledgment_missing }} contribution(s) of $250 or more have no written acknowledgment on file. The IRS requires one from the charity for each; tick the box on the donation once it arrives.
+		</NcNoteCard>
+		<NcNoteCard v-if="store.summary.form_8283_required" type="info">
+			Non-cash gifts exceed $500 this year, so Form 8283 Section A is required. The HTML report lists every item with its acquisition and cost-basis details; fill those in on each donation line.
+		</NcNoteCard>
+
+		<h3>By return line</h3>
 			<p class="dl-mileage-hint">Mileage folded into the line it belongs on. Medical is before the AGI floor.</p>
 			<table class="dl-table dl-summary-table">
 				<tbody>

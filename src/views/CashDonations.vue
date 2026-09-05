@@ -52,7 +52,10 @@
 					<td class="dl-col-date">{{ formatDate(d.date) }}</td>
 					<td>{{ charityName(d.charity_id) }}</td>
 					<td>{{ d.payment_method || '—' }}</td>
-					<td class="dl-col-amount">{{ formatAmount(d.amount) }}</td>
+					<td class="dl-col-amount">
+						{{ formatAmount(d.amount) }}
+						<span v-if="needsAck(d.amount) && !d.acknowledged" class="dl-flag" title="No written acknowledgment on file (required for $250+)">&#9888;</span>
+					</td>
 					<td class="dl-actions">
 						<NcButton type="tertiary" @click="openEdit(d)" :aria-label="`Edit donation`">
 							<template #icon><PencilIcon :size="18" /></template>
@@ -144,6 +147,12 @@
 					label="Notes"
 					placeholder="Optional notes"
 				/>
+
+				<label class="dl-check">
+					<input v-model="form.acknowledged" type="checkbox" />
+					Written acknowledgment from the charity received
+					<span v-if="needsAck(form.amount)" class="dl-check-hint">required by the IRS for gifts of $250+</span>
+				</label>
 				<p v-if="saveError" class="dl-error">{{ saveError }}</p>
 			</div>
 			<template #actions>
@@ -245,11 +254,17 @@ const emptyForm = () => ({
 	amount:        '',
 	paymentMethod: '',
 	notes:         '',
+	acknowledged:  false,
 })
 
 const form       = reactive(emptyForm())
 const availableYears = computed(() => yearsStore.withYear(form.taxYear))
 const formErrors = reactive({})
+
+const ACK_THRESHOLD = 250
+function needsAck(amount) {
+	return parseFloat(amount || 0) >= ACK_THRESHOLD
+}
 
 function syncYearFromDate() {
 	if (form.date) form.taxYear = yearOf(form.date)
@@ -269,6 +284,7 @@ function openEdit(donation) {
 		amount:        donation.amount,
 		paymentMethod: donation.payment_method ?? '',
 		notes:         donation.notes ?? '',
+		acknowledged:  !!donation.acknowledged,
 	})
 	editTarget.value = donation
 	showDialog.value = true
@@ -298,6 +314,7 @@ async function save() {
 			amount:         parseFloat(form.amount).toFixed(2),
 			payment_method: form.paymentMethod || null,
 			notes:          form.notes.trim() || null,
+			acknowledged:   form.acknowledged,
 		}
 
 		if (editTarget.value) {
@@ -443,5 +460,23 @@ async function doDelete() {
 .dl-error {
 	font-size: 0.8rem;
 	color: var(--color-error);
+}
+.dl-check {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.9rem;
+	flex-wrap: wrap;
+}
+
+.dl-check-hint {
+	font-size: 0.8rem;
+	color: var(--color-warning);
+}
+
+.dl-flag {
+	color: var(--color-warning);
+	margin-left: 0.25rem;
+	cursor: help;
 }
 </style>

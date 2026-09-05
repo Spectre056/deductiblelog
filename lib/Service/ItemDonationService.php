@@ -106,6 +106,7 @@ class ItemDonationService {
         $date      = $v->date($data['date'] ?? null);
         $taxYear   = $v->taxYear($data['tax_year'] ?? null, $date);
         $notes     = $v->optionalString($data['notes'] ?? null, 'notes', 10000);
+        $ack       = $v->flag($data['acknowledged'] ?? 0, 'acknowledged');
 
         if ($charityId !== null) {
             try {
@@ -132,6 +133,7 @@ class ItemDonationService {
         $donation->setTaxYear($taxYear);
         $donation->setDate($date);
         $donation->setNotes($notes);
+        $donation->setAcknowledged($ack);
         return $lines;
     }
 
@@ -143,6 +145,10 @@ class ItemDonationService {
         $unitValue  = $v->amount($line['unit_value'] ?? null, "{$f}.unit_value");
         $desc       = $v->optionalString($line['description'] ?? null, "{$f}.description", 256);
         $fmvSource  = null;
+        $dateAcq    = $v->yearMonth($line['date_acquired'] ?? null, "{$f}.date_acquired");
+        $howAcq     = $v->optionalEnum($line['how_acquired'] ?? null, Validator::HOW_ACQUIRED, "{$f}.how_acquired");
+        $costBasis  = ($line['cost_basis'] ?? null) === null || ($line['cost_basis'] ?? '') === '' ? null : $v->amount($line['cost_basis'], "{$f}.cost_basis", true);
+        $fmvMethod  = $v->optionalEnum($line['fmv_method'] ?? null, Validator::FMV_METHODS, "{$f}.fmv_method");
 
         if ($categoryId < 0) {
             $v->fail("{$f}.item_category_id", 'item_category_id must be 0 or a catalog id');
@@ -151,6 +157,7 @@ class ItemDonationService {
                 $cat       = $this->categoryMapper->findById($categoryId);
                 $desc      = $desc ?? $cat->getName();
                 $fmvSource = SeedData::CATALOG_VERSION;
+                $fmvMethod = $fmvMethod ?? 'thrift_shop_value';
             } catch (DoesNotExistException) {
                 $v->fail("{$f}.item_category_id", 'Unknown catalog item');
             }
@@ -166,6 +173,10 @@ class ItemDonationService {
             'condition'   => $condition ?? 'good',
             'unit_value'  => $unitValue ?? '0.00',
             'fmv_source'  => $fmvSource,
+            'date_acquired' => $dateAcq,
+            'how_acquired'  => $howAcq,
+            'cost_basis'    => $costBasis,
+            'fmv_method'    => $fmvMethod,
         ];
     }
 
@@ -191,6 +202,10 @@ class ItemDonationService {
             $entity->setUnitValue($l['unit_value']);
             $entity->setTotalValue($lineTotal);
             $entity->setFmvSource($l['fmv_source']);
+            $entity->setDateAcquired($l['date_acquired']);
+            $entity->setHowAcquired($l['how_acquired']);
+            $entity->setCostBasis($l['cost_basis']);
+            $entity->setFmvMethod($l['fmv_method']);
             $saved[]     = $this->lineMapper->insert($entity)->jsonSerialize();
             $totalCents += Money::toCents($lineTotal);
         }

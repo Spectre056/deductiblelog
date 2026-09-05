@@ -77,7 +77,7 @@ class ItemDonationServiceTest extends TestCase {
         $result = $this->service->create('michael', [
             'charity_id' => 7, 'date' => '2026-04-05',
             'lines' => [
-                ['item_category_id' => 100, 'quantity' => 3, 'condition' => 'good', 'unit_value' => '2.56'],
+                ['item_category_id' => 100, 'quantity' => 3, 'condition' => 'good', 'unit_value' => '2.56', 'date_acquired' => '2021-06', 'how_acquired' => 'purchase', 'cost_basis' => '45'],
                 ['item_category_id' => 0, 'description' => 'Lamp', 'quantity' => 1, 'condition' => 'excellent', 'unit_value' => '10'],
                 ['item_category_id' => 0, 'description' => 'Odd', 'quantity' => 7, 'condition' => 'poor', 'unit_value' => '0.10'],
             ],
@@ -90,6 +90,12 @@ class ItemDonationServiceTest extends TestCase {
         $this->assertSame("Men's Jeans", $this->inserted[0]->getDescription());
         $this->assertSame(SeedData::CATALOG_VERSION, $this->inserted[0]->getFmvSource());
         $this->assertNull($this->inserted[1]->getFmvSource());
+        $this->assertSame('thrift_shop_value', $this->inserted[0]->getFmvMethod());
+        $this->assertSame('2021-06', $this->inserted[0]->getDateAcquired());
+        $this->assertSame('purchase', $this->inserted[0]->getHowAcquired());
+        $this->assertSame('45.00', $this->inserted[0]->getCostBasis());
+        $this->assertNull($this->inserted[1]->getFmvMethod());
+        $this->assertSame(0, $this->inserted[0]->getDonationId() === 42 ? 0 : 1);
         $this->assertSame(2026, $result['tax_year']);
     }
 
@@ -102,6 +108,9 @@ class ItemDonationServiceTest extends TestCase {
             ['item_category_id' => 0, 'quantity' => 1, 'unit_value' => '5'],
             ['item_category_id' => 999, 'quantity' => 1, 'unit_value' => '5'],
             ['item_category_id' => 0, 'description' => 'x', 'quantity' => 1, 'condition' => 'mint', 'unit_value' => '5'],
+            ['item_category_id' => 0, 'description' => 'x', 'quantity' => 1, 'unit_value' => '5', 'date_acquired' => '06/2021'],
+            ['item_category_id' => 0, 'description' => 'x', 'quantity' => 1, 'unit_value' => '5', 'how_acquired' => 'stole'],
+            ['item_category_id' => 0, 'description' => 'x', 'quantity' => 1, 'unit_value' => '5', 'cost_basis' => '-3'],
         ] as $line) {
             try {
                 $this->service->create('michael', ['charity_id' => 7, 'date' => '2026-04-05', 'lines' => [$line]]);

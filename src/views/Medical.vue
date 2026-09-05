@@ -39,7 +39,8 @@
 					<th>Member</th>
 					<th>Provider</th>
 					<th>Category</th>
-					<th class="dl-col-amount">Amount</th>
+					<th class="dl-col-amount">Paid</th>
+					<th class="dl-col-amount">Deductible</th>
 					<th></th>
 				</tr>
 			</thead>
@@ -50,6 +51,10 @@
 					<td>{{ e.provider || '—' }}</td>
 					<td>{{ e.category || '—' }}</td>
 					<td class="dl-col-amount">{{ formatAmount(e.amount) }}</td>
+					<td class="dl-col-amount">
+						{{ formatAmount(e.deductible_amount ?? e.amount) }}
+						<span v-if="parseFloat(e.reimbursed_amount || 0) > 0" class="dl-reimb-hint">({{ formatAmount(e.reimbursed_amount) }} reimbursed)</span>
+					</td>
 					<td class="dl-actions">
 						<NcButton type="tertiary" @click="openEdit(e)" :aria-label="`Edit expense`">
 							<template #icon><PencilIcon :size="18" /></template>
@@ -62,7 +67,7 @@
 			</tbody>
 			<tfoot>
 				<tr class="dl-total-row">
-					<td colspan="4">Total</td>
+					<td colspan="5">Total</td>
 					<td class="dl-col-amount">{{ store.totalFormatted }}</td>
 					<td></td>
 				</tr>
@@ -130,17 +135,33 @@
 					</div>
 				</div>
 
-				<!-- Amount -->
-				<NcTextField
-					v-model="form.amount"
-					label="Amount ($) *"
-					placeholder="0.00"
-					type="number"
-					:min="0"
-					step="0.01"
-					:error="!!formErrors.amount"
-					:helper-text="formErrors.amount"
-				/>
+				<!-- Amount + Reimbursed -->
+				<div class="dl-form-row">
+					<div class="dl-field-group dl-field-grow">
+						<NcTextField
+							v-model="form.amount"
+							label="Amount paid ($) *"
+							placeholder="0.00"
+							type="number"
+							:min="0"
+							step="0.01"
+							:error="!!formErrors.amount"
+							:helper-text="formErrors.amount"
+						/>
+					</div>
+					<div class="dl-field-group dl-field-grow">
+						<NcTextField
+							v-model="form.reimbursed"
+							label="Reimbursed / paid from HSA-FSA ($)"
+							placeholder="0.00"
+							type="number"
+							:min="0"
+							step="0.01"
+							:error="!!formErrors.reimbursed"
+							:helper-text="formErrors.reimbursed || 'Not deductible; subtracted from the amount'"
+						/>
+					</div>
+				</div>
 
 				<!-- Notes -->
 				<NcTextField v-model="form.notes" label="Notes" placeholder="Optional notes" />
@@ -249,6 +270,7 @@ const emptyForm = () => ({
 	provider: '',
 	category: '',
 	amount:   '',
+	reimbursed: '',
 	notes:    '',
 })
 
@@ -274,6 +296,7 @@ function openEdit(expense) {
 		provider: expense.provider ?? '',
 		category: expense.category ?? '',
 		amount:   expense.amount,
+		reimbursed: parseFloat(expense.reimbursed_amount || 0) > 0 ? expense.reimbursed_amount : '',
 		notes:    expense.notes ?? '',
 	})
 	editTarget.value = expense
@@ -292,6 +315,7 @@ async function save() {
 	if (!form.member)                                   formErrors.member = 'Select a family member'
 	if (!form.date)                                     formErrors.date   = 'Date is required'
 	if (!form.amount || parseFloat(form.amount) <= 0)   formErrors.amount = 'Enter a valid amount'
+	if (form.reimbursed !== '' && (parseFloat(form.reimbursed) < 0 || parseFloat(form.reimbursed) > parseFloat(form.amount || 0))) formErrors.reimbursed = 'Reimbursement cannot exceed the amount paid'
 	if (Object.keys(formErrors).length) return
 
 	saving.value = true
@@ -304,6 +328,7 @@ async function save() {
 			provider:         form.provider.trim() || null,
 			category:         form.category || null,
 			amount:           parseFloat(form.amount).toFixed(2),
+			reimbursed_amount: form.reimbursed !== '' ? parseFloat(form.reimbursed).toFixed(2) : '0.00',
 			notes:            form.notes.trim() || null,
 		}
 
@@ -423,4 +448,9 @@ async function doDelete() {
 }
 
 .dl-error { font-size: 0.8rem; color: var(--color-error); }
+.dl-reimb-hint {
+	display: block;
+	font-size: 0.75rem;
+	color: var(--color-text-lighter);
+}
 </style>

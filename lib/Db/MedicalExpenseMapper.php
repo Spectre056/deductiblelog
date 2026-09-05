@@ -38,7 +38,7 @@ class MedicalExpenseMapper extends QBMapper {
 
     public function sumByYear(string $userId, int $taxYear): string {
         $qb = $this->db->getQueryBuilder();
-        $qb->select($qb->func()->sum('amount'))
+        $qb->select($qb->createFunction('SUM(amount - reimbursed_amount)'))
            ->from($this->getTableName())
            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
            ->andWhere($qb->expr()->eq('tax_year', $qb->createNamedParameter($taxYear, IQueryBuilder::PARAM_INT)));

@@ -19,6 +19,8 @@ namespace OCA\DeductibleLog\Db;
  * @method void setPaymentMethod(?string $paymentMethod)
  * @method string|null getNotes()
  * @method void setNotes(?string $notes)
+ * @method int getAcknowledged()
+ * @method void setAcknowledged(int $acknowledged)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  * @method string getUpdatedAt()
@@ -32,12 +34,14 @@ class CashDonation extends BaseEntity {
     protected string $amount = '0.00';
     protected ?string $paymentMethod = null;
     protected ?string $notes = null;
+    protected int $acknowledged = 0;
     protected string $createdAt = '';
     protected string $updatedAt = '';
 
     public function __construct() {
         $this->addType('charityId', 'integer');
         $this->addType('taxYear', 'integer');
+        $this->addType('acknowledged', 'integer');
     }
 
     public function jsonSerialize(): array {
@@ -50,6 +54,7 @@ class CashDonation extends BaseEntity {
             'amount'         => $this->amount,
             'payment_method' => $this->paymentMethod,
             'notes'          => $this->notes,
+            'acknowledged'   => $this->acknowledged === 1,
             'created_at'     => $this->createdAt,
             'updated_at'     => $this->updatedAt,
         ];

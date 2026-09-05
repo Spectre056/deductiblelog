@@ -59,6 +59,11 @@ class MedicalExpenseService {
         $provider = $v->optionalString($data['provider'] ?? null, 'provider', 256);
         $category = $v->optionalString($data['category'] ?? null, 'category', 64);
         $notes    = $v->optionalString($data['notes'] ?? null, 'notes', 10000);
+        $reimbRaw = $data['reimbursed_amount'] ?? null;
+        $reimb    = $reimbRaw === null || $reimbRaw === '' ? '0.00' : $v->amount($reimbRaw, 'reimbursed_amount', true);
+        if ($amount !== null && $reimb !== null && Money::toCents($reimb) > Money::toCents($amount)) {
+            $v->fail('reimbursed_amount', 'reimbursed_amount cannot exceed amount');
+        }
 
         if ($memberId !== null) {
             try {
@@ -73,6 +78,7 @@ class MedicalExpenseService {
         $expense->setTaxYear($taxYear);
         $expense->setDate($date);
         $expense->setAmount($amount);
+        $expense->setReimbursedAmount($reimb);
         $expense->setProvider($provider);
         $expense->setCategory($category);
         $expense->setNotes($notes);

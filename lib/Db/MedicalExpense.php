@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\DeductibleLog\Db;
 
+use OCA\DeductibleLog\Service\Money;
+
 /**
  * @method string getUserId()
  * @method void setUserId(string $userId)
@@ -19,6 +21,8 @@ namespace OCA\DeductibleLog\Db;
  * @method void setCategory(?string $category)
  * @method string getAmount()
  * @method void setAmount(string $amount)
+ * @method string getReimbursedAmount()
+ * @method void setReimbursedAmount(string $reimbursedAmount)
  * @method string|null getNotes()
  * @method void setNotes(?string $notes)
  * @method string getCreatedAt()
@@ -34,6 +38,7 @@ class MedicalExpense extends BaseEntity {
     protected ?string $provider = null;
     protected ?string $category = null;
     protected string $amount = '0.00';
+    protected string $reimbursedAmount = '0.00';
     protected ?string $notes = null;
     protected string $createdAt = '';
     protected string $updatedAt = '';
@@ -41,6 +46,11 @@ class MedicalExpense extends BaseEntity {
     public function __construct() {
         $this->addType('familyMemberId', 'integer');
         $this->addType('taxYear', 'integer');
+    }
+
+    /** What actually counts toward Schedule A: the out-of-pocket part. */
+    public function getDeductibleAmount(): string {
+        return Money::fromCents(Money::toCents($this->amount) - Money::toCents($this->reimbursedAmount));
     }
 
     public function jsonSerialize(): array {
@@ -52,7 +62,9 @@ class MedicalExpense extends BaseEntity {
             'date'             => $this->date,
             'provider'         => $this->provider,
             'category'         => $this->category,
-            'amount'           => $this->amount,
+            'amount'            => $this->amount,
+            'reimbursed_amount' => $this->reimbursedAmount,
+            'deductible_amount' => $this->getDeductibleAmount(),
             'notes'            => $this->notes,
             'created_at'       => $this->createdAt,
             'updated_at'       => $this->updatedAt,

@@ -52,7 +52,10 @@
 					<td class="dl-col-date">{{ formatDate(d.date) }}</td>
 					<td>{{ charityName(d.charity_id) }}</td>
 					<td class="dl-col-center">{{ d.lines?.length ?? 0 }}</td>
-					<td class="dl-col-amount">{{ formatAmount(d.total_value) }}</td>
+					<td class="dl-col-amount">
+						{{ formatAmount(d.total_value) }}
+						<span v-if="needsAck(d.total_value) && !d.acknowledged" class="dl-flag" title="No written acknowledgment on file (required for $250+)">&#9888;</span>
+					</td>
 					<td class="dl-actions">
 						<NcButton type="tertiary" @click="openEdit(d)" :aria-label="`Edit donation`">
 							<template #icon><PencilIcon :size="18" /></template>
@@ -118,6 +121,12 @@
 
 				<!-- Notes -->
 				<NcTextField v-model="form.notes" label="Notes" placeholder="Optional notes" />
+
+				<label class="dl-check">
+					<input v-model="form.acknowledged" type="checkbox" />
+					Written acknowledgment from the charity received
+					<span v-if="needsAck(formTotal)" class="dl-check-hint">required by the IRS for gifts of $250+</span>
+				</label>
 
 				<!-- Line items -->
 				<div class="dl-lines-section">
@@ -187,6 +196,36 @@
 							<div class="dl-field-group">
 								<label class="dl-label-sm">Total</label>
 								<span class="dl-line-total">{{ formatAmount(line.totalValue) }}</span>
+							</div>
+						</div>
+						<div class="dl-8283">
+							<a href="#" class="dl-8283-toggle" @click.prevent="line.showDetails = !line.showDetails">
+								{{ line.showDetails ? 'Hide' : 'Show' }} Form 8283 details
+								<span v-if="!line.showDetails && (line.dateAcquired || line.howAcquired || line.costBasis)" class="dl-check-hint">(filled)</span>
+							</a>
+							<div v-if="line.showDetails" class="dl-line-details">
+								<div class="dl-field-group">
+									<label class="dl-label-sm">Acquired (month)</label>
+									<input v-model="line.dateAcquired" type="month" class="dl-input-sm" />
+								</div>
+								<div class="dl-field-group">
+									<label class="dl-label-sm">How acquired</label>
+									<select v-model="line.howAcquired" class="dl-select-sm">
+										<option value="">—</option>
+										<option v-for="h in HOW_ACQUIRED" :key="h.value" :value="h.value">{{ h.label }}</option>
+									</select>
+								</div>
+								<div class="dl-field-group">
+									<label class="dl-label-sm">Cost basis $</label>
+									<input v-model="line.costBasis" type="number" min="0" step="0.01" class="dl-input-sm dl-input-money" />
+								</div>
+								<div class="dl-field-group">
+									<label class="dl-label-sm">FMV method</label>
+									<select v-model="line.fmvMethod" class="dl-select-sm">
+										<option value="">{{ line.itemOption?.id ? 'Thrift shop value (catalog)' : '—' }}</option>
+										<option v-for="m in FMV_METHODS" :key="m.value" :value="m.value">{{ m.label }}</option>
+									</select>
+								</div>
 							</div>
 						</div>
 						<div v-if="line.itemOption?.id" class="dl-fmv-hint">
@@ -336,11 +375,31 @@ const saving       = ref(false)
 const deleting     = ref(false)
 const saveError    = ref('')
 
+const HOW_ACQUIRED = [
+	{ value: 'purchase',    label: 'Purchase' },
+	{ value: 'gift',        label: 'Gift' },
+	{ value: 'inheritance', label: 'Inheritance' },
+	{ value: 'exchange',    label: 'Exchange' },
+	{ value: 'other',       label: 'Other' },
+]
+const FMV_METHODS = [
+	{ value: 'thrift_shop_value', label: 'Thrift shop value' },
+	{ value: 'comparable_sales',  label: 'Comparable sales' },
+	{ value: 'appraisal',         label: 'Appraisal' },
+	{ value: 'catalog',           label: 'Catalog price' },
+	{ value: 'other',             label: 'Other' },
+]
+const ACK_THRESHOLD = 250
+function needsAck(amount) {
+	return parseFloat(amount || 0) >= ACK_THRESHOLD
+}
+
 const emptyForm = () => ({
-	charity: null,
-	date:    todayISO,
-	taxYear: CURRENT_YEAR,
-	notes:   '',
+	charity:      null,
+	date:         todayISO,
+	taxYear:      CURRENT_YEAR,
+	notes:        '',
+	acknowledged: false,
 })
 
 const form       = reactive(emptyForm())
@@ -348,10 +407,8 @@ const availableYears = computed(() => yearsStore.withYear(form.taxYear))
 const formErrors = reactive({})
 const formLines  = ref([])
 
-const formTotalFormatted = computed(() => {
-	const total = formLines.value.reduce((sum, l) => sum + parseFloat(l.totalValue || 0), 0)
-	return total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-})
+const formTotal = computed(() => formLines.value.reduce((sum, l) => sum + parseFloat(l.totalValue || 0), 0))
+const formTotalFormatted = computed(() => formTotal.value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }))
 
 function newLine() {
 	return {
@@ -361,6 +418,11 @@ function newLine() {
 		unitValue:   '',
 		totalValue:  '0.00',
 		manualValue: false,
+		dateAcquired: '',
+		howAcquired:  '',
+		costBasis:    '',
+		fmvMethod:    '',
+		showDetails:  false,
 	}
 }
 
@@ -455,6 +517,7 @@ function openEdit(donation) {
 		date:    donation.date,
 		taxYear: donation.tax_year,
 		notes:   donation.notes ?? '',
+		acknowledged: !!donation.acknowledged,
 	})
 	formLines.value = (donation.lines ?? []).map(l => {
 		const itemOption = l.item_category_id
@@ -468,6 +531,11 @@ function openEdit(donation) {
 			unitValue:   l.unit_value,
 			totalValue:  l.total_value,
 			manualValue: fmvFor(itemOption, l.condition) !== parseFloat(l.unit_value).toFixed(2),
+			dateAcquired: l.date_acquired ?? '',
+			howAcquired:  l.how_acquired ?? '',
+			costBasis:    l.cost_basis ?? '',
+			fmvMethod:    l.fmv_method === 'thrift_shop_value' && l.item_category_id ? '' : (l.fmv_method ?? ''),
+			showDetails:  !!(l.date_acquired || l.how_acquired || l.cost_basis),
 		}
 	})
 	editTarget.value = donation
@@ -503,12 +571,17 @@ async function save() {
 			date:       form.date,
 			tax_year:   form.taxYear,
 			notes:      form.notes.trim() || null,
+			acknowledged: form.acknowledged,
 			lines:      formLines.value.map(l => ({
 				item_category_id: l.itemOption?.id ?? 0,
 				description:      l.itemOption?.label ?? '',
 				quantity:         Math.max(1, parseInt(l.quantity, 10) || 1),
 				condition:        l.condition,
 				unit_value:       parseFloat(l.unitValue || 0).toFixed(2),
+				date_acquired:    l.dateAcquired || null,
+				how_acquired:     l.howAcquired || null,
+				cost_basis:       l.costBasis !== '' && l.costBasis !== null ? parseFloat(l.costBasis).toFixed(2) : null,
+				fmv_method:       l.fmvMethod || null,
 			})),
 		}
 
@@ -527,6 +600,11 @@ async function save() {
 				unitValue:   l.unit_value,
 				totalValue:  l.total_value,
 				manualValue: true,
+				dateAcquired: l.date_acquired ?? '',
+				howAcquired:  l.how_acquired ?? '',
+				costBasis:    l.cost_basis ?? '',
+				fmvMethod:    l.fmv_method === 'thrift_shop_value' && l.item_category_id ? '' : (l.fmv_method ?? ''),
+				showDetails:  false,
 			}))
 			return
 		}
@@ -864,5 +942,34 @@ function receiptDownloadUrl(id) {
 
 .dl-receipt-item a:hover {
 	text-decoration: underline;
+}
+.dl-check {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.9rem;
+	flex-wrap: wrap;
+}
+
+.dl-check-hint {
+	font-size: 0.8rem;
+	color: var(--color-warning);
+}
+
+.dl-flag {
+	color: var(--color-warning);
+	margin-left: 0.25rem;
+	cursor: help;
+}
+
+.dl-8283 {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.dl-8283-toggle {
+	font-size: 0.78rem;
+	color: var(--color-primary-element);
 }
 </style>

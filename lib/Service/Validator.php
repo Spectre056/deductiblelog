@@ -17,6 +17,13 @@ class Validator {
     public const PURPOSE_TYPES   = ['charitable', 'medical', 'business'];
     public const RELATIONSHIPS   = ['self', 'spouse', 'dependent'];
     public const RECEIPT_ENTITY_TYPES = ['cash_donation', 'item_donation', 'mileage', 'medical', 'business'];
+    public const HOW_ACQUIRED  = ['purchase', 'gift', 'inheritance', 'exchange', 'other'];
+    public const FMV_METHODS   = ['thrift_shop_value', 'comparable_sales', 'appraisal', 'catalog', 'other'];
+
+    /** Single contributions at or above this need a contemporaneous written acknowledgment (IRC §170(f)(8)). */
+    public const ACKNOWLEDGMENT_THRESHOLD = '250.00';
+    /** Annual aggregate non-cash gifts above this require Form 8283 Section A. */
+    public const FORM_8283_THRESHOLD = '500.00';
 
     /** Earliest tax year accepted anywhere; far enough back for amended returns. */
     public const MIN_YEAR = 2000;
@@ -125,6 +132,39 @@ class Validator {
             return null;
         }
         return $this->positiveInt($value, $field);
+    }
+
+    /** Optional YYYY-MM (Form 8283 wants month and year acquired). */
+    public function yearMonth(mixed $value, string $field): ?string {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $s = is_string($value) ? trim($value) : '';
+        if (!preg_match('/^(\d{4})-(\d{2})$/', $s, $m) || (int) $m[2] < 1 || (int) $m[2] > 12 || (int) $m[1] < 1900) {
+            $this->fail($field, "{$field} must be a month in YYYY-MM form");
+            return null;
+        }
+        return $s;
+    }
+
+    /** Optional enum: empty means "not given". */
+    public function optionalEnum(mixed $value, array $allowed, string $field): ?string {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        return $this->enum($value, $allowed, $field);
+    }
+
+    /** true/false/1/0/"1"/"0"/"true"/"false" → 1 or 0. */
+    public function flag(mixed $value, string $field): int {
+        if (in_array($value, [true, 1, '1', 'true', 'on'], true)) {
+            return 1;
+        }
+        if ($value === null || in_array($value, [false, 0, '0', 'false', '', 'off'], true)) {
+            return 0;
+        }
+        $this->fail($field, "{$field} must be true or false");
+        return 0;
     }
 
     public function enum(mixed $value, array $allowed, string $field): ?string {

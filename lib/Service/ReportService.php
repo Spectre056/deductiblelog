@@ -39,6 +39,19 @@ class ReportService {
 
         $charitableTotal = Money::sum($cashTotal, $itemTotal);
 
+        $ackThreshold = Money::toCents(Validator::ACKNOWLEDGMENT_THRESHOLD);
+        $ackMissing   = 0;
+        foreach ($this->cashService->findAll($userId, $taxYear) as $d) {
+            if ($d->getAcknowledged() !== 1 && Money::toCents($d->getAmount()) >= $ackThreshold) {
+                $ackMissing++;
+            }
+        }
+        foreach ($this->itemService->findAll($userId, $taxYear) as $d) {
+            if (empty($d['acknowledged']) && Money::toCents($d['total_value']) >= $ackThreshold) {
+                $ackMissing++;
+            }
+        }
+
         return [
             'tax_year'          => $taxYear,
             'cash_donations'    => $cashTotal,
@@ -56,6 +69,9 @@ class ReportService {
             'medical_with_mileage'  => Money::sum($medicalTotal, $byPurpose['medical']['deduction']),
             'schedule_c'            => Money::sum($businessTotal, $byPurpose['business']['deduction']),
             'grand_total'       => Money::sum($charitableTotal, $mileageTotals['deduction'], $medicalTotal, $businessTotal),
+            // Return-readiness flags
+            'acknowledgment_missing' => $ackMissing,
+            'form_8283_required'     => Money::toCents($itemTotal) > Money::toCents(Validator::FORM_8283_THRESHOLD),
         ];
     }
 
@@ -65,7 +81,7 @@ class ReportService {
         $charityMap = $this->buildCharityMap($userId);
         $memberMap  = $this->buildMemberMap($userId);
 
-        $rows = [['Type', 'Tax Year', 'Date', 'Charity / Provider', 'Description', 'Category / Purpose', 'Family Member', 'Amount', 'Miles', 'Notes']];
+        $rows = [['Type', 'Tax Year', 'Date', 'Charity / Provider', 'Description', 'Category / Purpose', 'Family Member', 'Amount', 'Miles', 'Notes', 'Acknowledged', 'Reimbursed', 'Qty', 'Unit Value', 'Condition', 'Date Acquired', 'How Acquired', 'Cost Basis', 'FMV Method']];
 
         foreach ($this->cashService->findAll($userId, $taxYear) as $d) {
             $rows[] = [
@@ -79,22 +95,48 @@ class ReportService {
                 $d->getAmount(),
                 '',
                 $d->getNotes() ?? '',
+                $d->getAcknowledged() === 1 ? 'yes' : 'no',
             ];
         }
 
         foreach ($this->itemService->findAll($userId, $taxYear) as $d) {
+            $charity = $charityMap[$d['charity_id']] ?? '';
             $rows[] = [
                 'Item Donation',
                 $taxYear,
                 $d['date'],
-                $charityMap[$d['charity_id']] ?? '',
+                $charity,
                 '',
                 '',
                 '',
                 $d['total_value'],
                 '',
                 $d['notes'] ?? '',
+                !empty($d['acknowledged']) ? 'yes' : 'no',
             ];
+            foreach ($d['lines'] ?? [] as $l) {
+                $rows[] = [
+                    'Item Donation Line',
+                    $taxYear,
+                    $d['date'],
+                    $charity,
+                    $l['description'] ?? '',
+                    '',
+                    '',
+                    $l['total_value'] ?? '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    $l['quantity'] ?? '',
+                    $l['unit_value'] ?? '',
+                    $l['condition'] ?? '',
+                    $l['date_acquired'] ?? '',
+                    $l['how_acquired'] ?? '',
+                    $l['cost_basis'] ?? '',
+                    $l['fmv_method'] ?? '',
+                ];
+            }
         }
 
         foreach ($this->mileageService->findAll($userId, $taxYear) as $log) {
@@ -121,9 +163,11 @@ class ReportService {
                 '',
                 $exp->getCategory() ?? '',
                 $memberMap[$exp->getFamilyMemberId()] ?? '',
-                $exp->getAmount(),
+                $exp->getDeductibleAmount(),
                 '',
                 $exp->getNotes() ?? '',
+                '',
+                $exp->getReimbursedAmount(),
             ];
         }
 
@@ -248,6 +292,7 @@ class ReportService {
         $business = $this->businessService->findAll($userId, $taxYear);
 
         $fmt = fn(string $v) => '$' . number_format((float) $v, 2);
+        $ackThreshold = Money::toCents(Validator::ACKNOWLEDGMENT_THRESHOLD);
 
         $html  = $this->htmlHead($household, $taxYear);
         $html .= "<body>\n";
@@ -274,12 +319,20 @@ class ReportService {
         $html .= "</div>\n";
         $html .= '<div class="grand-total">Grand Total: ' . $fmt($summary['grand_total']) . "</div>\n";
 
+        if ($summary['acknowledgment_missing'] > 0) {
+            $html .= '<p class="flag">&#9888; ' . $summary['acknowledgment_missing'] . ' contribution(s) of $250 or more have no written acknowledgment on file. The IRS requires a contemporaneous written acknowledgment from the charity for each.</p>' . "\n";
+        }
+        if ($summary['form_8283_required']) {
+            $html .= '<p class="flag">&#9888; Non-cash gifts exceed $500 for the year: Form 8283 Section A is required. Per-item detail is listed under Item Donation Detail below.</p>' . "\n";
+        }
+
         // Cash donations
         if (!empty($cash)) {
             $html .= "<h2>Cash Donations</h2>\n";
             $html .= "<table>\n<thead><tr><th>Date</th><th>Charity</th><th>Payment</th><th class=\"amt\">Amount</th></tr></thead>\n<tbody>\n";
             foreach ($cash as $d) {
-                $html .= '<tr><td>' . h($d->getDate()) . '</td><td>' . h($charityMap[$d->getCharityId()] ?? '') . '</td><td>' . h($d->getPaymentMethod() ?? '—') . '</td><td class="amt">' . $fmt($d->getAmount()) . "</td></tr>\n";
+                $flag = $d->getAcknowledged() !== 1 && Money::toCents($d->getAmount()) >= $ackThreshold ? ' <span class="flag" title="No written acknowledgment on file">&#9888;</span>' : '';
+                $html .= '<tr><td>' . h($d->getDate()) . '</td><td>' . h($charityMap[$d->getCharityId()] ?? '') . '</td><td>' . h($d->getPaymentMethod() ?? '—') . '</td><td class="amt">' . $fmt($d->getAmount()) . $flag . "</td></tr>\n";
             }
             $html .= '</tbody><tfoot><tr><td colspan="3"><strong>Total</strong></td><td class="amt"><strong>' . $fmt($summary['cash_donations']) . "</strong></td></tr></tfoot>\n</table>\n";
         }
@@ -290,9 +343,21 @@ class ReportService {
             $html .= "<table>\n<thead><tr><th>Date</th><th>Charity</th><th>Items</th><th class=\"amt\">Value</th></tr></thead>\n<tbody>\n";
             foreach ($items as $d) {
                 $itemDesc = implode(', ', array_map(fn($l) => $l['description'] ?: ('Item #' . $l['id']), $d['lines'] ?? []));
-                $html .= '<tr><td>' . h($d['date']) . '</td><td>' . h($charityMap[$d['charity_id']] ?? '') . '</td><td>' . h($itemDesc ?: '—') . '</td><td class="amt">' . $fmt($d['total_value']) . "</td></tr>\n";
+                $flag = empty($d['acknowledged']) && Money::toCents($d['total_value']) >= $ackThreshold ? ' <span class="flag" title="No written acknowledgment on file">&#9888;</span>' : '';
+                $html .= '<tr><td>' . h($d['date']) . '</td><td>' . h($charityMap[$d['charity_id']] ?? '') . '</td><td>' . h($itemDesc ?: '—') . '</td><td class="amt">' . $fmt($d['total_value']) . $flag . "</td></tr>\n";
             }
             $html .= '</tbody><tfoot><tr><td colspan="3"><strong>Total</strong></td><td class="amt"><strong>' . $fmt($summary['item_donations']) . "</strong></td></tr></tfoot>\n</table>\n";
+
+            // Form 8283 Section A detail: one row per line item
+            $html .= "<h2>Item Donation Detail (Form 8283 Section A)</h2>\n";
+            $html .= "<table>\n<thead><tr><th>Date</th><th>Charity</th><th>Item</th><th>Cond.</th><th class=\"amt\">Qty</th><th>Acquired</th><th class=\"amt\">Cost Basis</th><th>FMV Method</th><th class=\"amt\">FMV</th></tr></thead>\n<tbody>\n";
+            foreach ($items as $d) {
+                foreach ($d['lines'] ?? [] as $l) {
+                    $acq = trim(($l['how_acquired'] ? ucfirst($l['how_acquired']) : '') . ' ' . ($l['date_acquired'] ?? ''));
+                    $html .= '<tr><td>' . h($d['date']) . '</td><td>' . h($charityMap[$d['charity_id']] ?? '') . '</td><td>' . h($l['description'] ?: '—') . '</td><td>' . h(ucfirst($l['condition'] ?? '')) . '</td><td class="amt">' . (int) ($l['quantity'] ?? 1) . '</td><td>' . h($acq !== '' ? $acq : '—') . '</td><td class="amt">' . ($l['cost_basis'] !== null && $l['cost_basis'] !== '' ? $fmt($l['cost_basis']) : '—') . '</td><td>' . h(self::fmvMethodLabel($l['fmv_method'] ?? null)) . '</td><td class="amt">' . $fmt($l['total_value'] ?? '0') . "</td></tr>\n";
+                }
+            }
+            $html .= "</tbody></table>\n";
         }
 
         // Mileage
@@ -308,11 +373,11 @@ class ReportService {
         // Medical
         if (!empty($medical)) {
             $html .= "<h2>Medical Expenses</h2>\n";
-            $html .= "<table>\n<thead><tr><th>Date</th><th>Provider</th><th>Category</th><th>Who</th><th class=\"amt\">Amount</th></tr></thead>\n<tbody>\n";
+            $html .= "<table>\n<thead><tr><th>Date</th><th>Provider</th><th>Category</th><th>Who</th><th class=\"amt\">Paid</th><th class=\"amt\">Reimbursed</th><th class=\"amt\">Deductible</th></tr></thead>\n<tbody>\n";
             foreach ($medical as $exp) {
-                $html .= '<tr><td>' . h($exp->getDate()) . '</td><td>' . h($exp->getProvider() ?? '—') . '</td><td>' . h($exp->getCategory() ?? '—') . '</td><td>' . h($memberMap[$exp->getFamilyMemberId()] ?? '—') . '</td><td class="amt">' . $fmt($exp->getAmount()) . "</td></tr>\n";
+                $html .= '<tr><td>' . h($exp->getDate()) . '</td><td>' . h($exp->getProvider() ?? '—') . '</td><td>' . h($exp->getCategory() ?? '—') . '</td><td>' . h($memberMap[$exp->getFamilyMemberId()] ?? '—') . '</td><td class="amt">' . $fmt($exp->getAmount()) . '</td><td class="amt">' . $fmt($exp->getReimbursedAmount()) . '</td><td class="amt">' . $fmt($exp->getDeductibleAmount()) . "</td></tr>\n";
             }
-            $html .= '</tbody><tfoot><tr><td colspan="4"><strong>Total</strong></td><td class="amt"><strong>' . $fmt($summary['medical_expenses']) . "</strong></td></tr></tfoot>\n</table>\n";
+            $html .= '</tbody><tfoot><tr><td colspan="6"><strong>Total deductible</strong></td><td class="amt"><strong>' . $fmt($summary['medical_expenses']) . "</strong></td></tr></tfoot>\n</table>\n";
         }
 
         // Business
@@ -360,6 +425,17 @@ class ReportService {
         return $cell !== '' && strpbrk($cell[0], "=+-@\t\r") !== false ? "'" . $cell : $cell;
     }
 
+    public static function fmvMethodLabel(?string $method): string {
+        return match ($method) {
+            'thrift_shop_value' => 'Thrift shop value',
+            'comparable_sales'  => 'Comparable sales',
+            'appraisal'         => 'Appraisal',
+            'catalog'           => 'Catalog price',
+            'other'             => 'Other',
+            default             => '—',
+        };
+    }
+
     private function summaryCard(string $label, string $value, string $extra = ''): string {
         $cls = $extra ? " class=\"summary-card {$extra}\"" : ' class="summary-card"';
         return "<div{$cls}><div class=\"summary-label\">" . htmlspecialchars($label) . '</div><div class="summary-amount">' . htmlspecialchars($value) . "</div></div>\n";
@@ -386,6 +462,7 @@ class ReportService {
   .summary-card.accent { border-color: #2563eb; background: #eff6ff; }
   .summary-label { font-size: 0.78rem; color: #666; margin-bottom: 0.2rem; }
   .summary-amount { font-size: 1.15rem; font-weight: 700; color: #1d4ed8; }
+  .flag { color: #b45309; font-weight: 600; }
   .grand-total { font-size: 1.4rem; font-weight: 800; color: #059669; margin: 0.5rem 0 2rem; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
   th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e5e7eb; }

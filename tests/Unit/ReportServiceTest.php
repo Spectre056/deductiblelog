@@ -33,7 +33,7 @@ class ReportServiceTest extends TestCase {
         $items->method('yearTotal')->willReturn('1686.50');
         $items->method('findAll')->willReturn([[
             'id' => 2, 'charity_id' => 99, 'date' => '2026-04-05', 'total_value' => '1686.50', 'notes' => null,
-            'lines' => [['id' => 1, 'description' => 'Jeans^Pants']],
+            'lines' => [['id' => 1, 'description' => 'Jeans^Pants', 'quantity' => 3, 'unit_value' => '2.56', 'total_value' => '7.68', 'condition' => 'good', 'date_acquired' => '2021-06', 'how_acquired' => 'purchase', 'cost_basis' => '45.00', 'fmv_method' => 'thrift_shop_value']],
         ]]);
 
         $mileage = $this->createMock(MileageService::class);
@@ -74,6 +74,8 @@ class ReportServiceTest extends TestCase {
         $this->assertSame('270.60', $s['medical_with_mileage']);
         $this->assertSame('72.70', $s['schedule_c']);
         $this->assertSame('3043.80', $s['grand_total']);
+        $this->assertSame(2, $s['acknowledgment_missing']);
+        $this->assertTrue($s['form_8283_required']);
     }
 
     public function testTxfGolden(): void {
@@ -91,6 +93,7 @@ class ReportServiceTest extends TestCase {
         $csv = $this->service->csv('michael', 2026);
         $this->assertStringContainsString('"\'=HYPERLINK(""http://x"")' . "\n" . 'line2"', $csv);
         $this->assertStringContainsString('"Mileage Subtotal","2026","","","","Charitable","","14.00","100.0",""', $csv);
+        $this->assertStringContainsString('"Item Donation Line","2026","2026-04-05","","Jeans^Pants","","","7.68","","","","","3","2.56","good","2021-06","purchase","45.00","thrift_shop_value"', $csv);
         $this->assertSame("'-5", ReportService::csvSafe('-5'));
         $this->assertSame('5', ReportService::csvSafe('5'));
         $this->assertSame('', ReportService::csvSafe(''));
@@ -103,5 +106,8 @@ class ReportServiceTest extends TestCase {
         $this->assertStringContainsString('Jeans^Pants', $html);
         $this->assertStringContainsString('Schedule A: cash gifts incl. 100.0 charitable mi', $html);
         $this->assertStringContainsString('$1,014.00', $html);
+        $this->assertStringContainsString('Form 8283 Section A', $html);
+        $this->assertStringContainsString('Purchase 2021-06', $html);
+        $this->assertStringContainsString('2 contribution(s) of $250 or more', $html);
     }
 }

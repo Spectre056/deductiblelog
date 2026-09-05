@@ -59,6 +59,7 @@ class CashDonationService {
         $amount    = $v->amount($data['amount'] ?? null);
         $payment   = $v->optionalString($data['payment_method'] ?? null, 'payment_method', 32);
         $notes     = $v->optionalString($data['notes'] ?? null, 'notes', 10000);
+        $ack       = $v->flag($data['acknowledged'] ?? 0, 'acknowledged');
 
         if ($charityId !== null) {
             try {
@@ -75,5 +76,6 @@ class CashDonationService {
         $donation->setAmount($amount);
         $donation->setPaymentMethod($payment);
         $donation->setNotes($notes);
+        $donation->setAcknowledged($ack);
     }
 }

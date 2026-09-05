@@ -19,6 +19,14 @@ namespace OCA\DeductibleLog\Db;
  * @method void setUnitValue(string $unitValue)
  * @method string getTotalValue()
  * @method void setTotalValue(string $totalValue)
+ * @method string|null getDateAcquired()
+ * @method void setDateAcquired(?string $dateAcquired)
+ * @method string|null getHowAcquired()
+ * @method void setHowAcquired(?string $howAcquired)
+ * @method string|null getCostBasis()
+ * @method void setCostBasis(?string $costBasis)
+ * @method string|null getFmvMethod()
+ * @method void setFmvMethod(?string $fmvMethod)
  * @method string|null getFmvSource()
  * @method void setFmvSource(?string $fmvSource)
  */
@@ -31,6 +39,10 @@ class ItemDonationLine extends BaseEntity {
     protected string $unitValue = '0.00';
     protected string $totalValue = '0.00';
     protected ?string $fmvSource = null;
+    protected ?string $dateAcquired = null;
+    protected ?string $howAcquired = null;
+    protected ?string $costBasis = null;
+    protected ?string $fmvMethod = null;
 
     public function __construct() {
         $this->addType('donationId', 'integer');
@@ -49,6 +61,10 @@ class ItemDonationLine extends BaseEntity {
             'unit_value'       => $this->unitValue,
             'total_value'      => $this->totalValue,
             'fmv_source'       => $this->fmvSource,
+            'date_acquired'    => $this->dateAcquired,
+            'how_acquired'     => $this->howAcquired,
+            'cost_basis'       => $this->costBasis,
+            'fmv_method'       => $this->fmvMethod,
         ];
     }
 }
